@@ -6,10 +6,10 @@
 # ==============================================================================
 set -e
 
-APPIMAGE="Hiragana_Road_Fighter-v0.01-x86_64.AppImage"
-URL="https://github.com/deck-labs/hiragana-road-fighter/releases/download/v0.01/${APPIMAGE}"
+APPIMAGE="Hiragana_Road_Fighter-x86_64.AppImage"
+URL="https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/${APPIMAGE}"
 
-echo "=== Downloading Hiragana Road Fighter AppImage (v0.01) ==="
+echo "=== Downloading Hiragana Road Fighter AppImage ==="
 curl -L --progress-bar -o "${APPIMAGE}" "${URL}"
 chmod +x "${APPIMAGE}"
 

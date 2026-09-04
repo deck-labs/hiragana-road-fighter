@@ -15,13 +15,12 @@ You do **not** need to clone this repository, install dependencies, or compile s
 
 ### 🚀 Option 1: One-Click Browser Download
 
-[![Direct Download AppImage](https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.01%20(17%20MB)-00c853?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/deck-labs/hiragana-road-fighter/releases/download/v0.01/Hiragana_Road_Fighter-v0.01-x86_64.AppImage)
+[![Direct Download AppImage](https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-(17%20MB)-00c853?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage)
 
 | Download Target | Direct Shortcut Link | Description |
 | :--- | :--- | :--- |
-| **Release v0.01 AppImage** | [📥 **Download v0.01 AppImage**](https://github.com/deck-labs/hiragana-road-fighter/releases/download/v0.01/Hiragana_Road_Fighter-v0.01-x86_64.AppImage) | Direct standalone Linux binary (17 MB) |
-| **Permanent Latest Link** | [📦 **Download Latest AppImage**](https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-latest-x86_64.AppImage) | Always redirects to newest release |
-| **Repository File Link** | [📄 **Download from Repository**](https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-v0.01-x86_64.AppImage) | Raw direct download from Git tree |
+| **Direct AppImage Release** | [📥 **Download Hiragana Road Fighter AppImage**](https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage) | Standalone Linux executable (17 MB) |
+| **Repository File Link** | [📄 **Download from Repository**](https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage) | Raw direct download from Git tree |
 
 ### 💻 Option 2: One-Line Terminal Shortcut (Auto Download & Run)
 
@@ -34,9 +33,9 @@ curl -sSL https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main
 Or download manually via `curl` / `wget`:
 
 ```bash
-curl -LO https://github.com/deck-labs/hiragana-road-fighter/releases/download/v0.01/Hiragana_Road_Fighter-v0.01-x86_64.AppImage
-chmod +x Hiragana_Road_Fighter-v0.01-x86_64.AppImage
-./Hiragana_Road_Fighter-v0.01-x86_64.AppImage
+curl -LO https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage
+chmod +x Hiragana_Road_Fighter-x86_64.AppImage
+./Hiragana_Road_Fighter-x86_64.AppImage
 ```
 
 ---
@@ -95,19 +94,19 @@ The game features full controller support (Steam Deck, Xbox, PlayStation, 8BitDo
 | **Steer** | D-Pad / Left Analog Stick | Left / Right (or A / D) |
 | **Turbo Boost** | (A) / (B) / Up / RT | Up (or W) / Space |
 | **Brake / Drift** | (X) / (Y) / Down / LT | Down (or S) |
-| **Pause & Options** | START / MENU | ESC / P / Tab |
-| **Quick Quit** | BACK / VIEW | Q |
+| **Pause & Resume** | SELECT / START | ESC / P / Tab |
+| **Quick Quit** | SELECT + START (Simultaneously) | Q |
 
 ---
 
-## Download & Run (v0.01 AppImage)
+## Download & Run (Standalone AppImage)
 
-A pre-packaged, standalone Linux AppImage (`version .01`) is included directly in this repository and in GitHub Releases:
+A pre-packaged, standalone Linux AppImage is included directly in this repository and available via GitHub Releases:
 
 ```bash
 # Make executable and launch
-chmod +x Hiragana_Road_Fighter-v0.01-x86_64.AppImage
-./Hiragana_Road_Fighter-v0.01-x86_64.AppImage
+chmod +x Hiragana_Road_Fighter-x86_64.AppImage
+./Hiragana_Road_Fighter-x86_64.AppImage
 ```
 
 The AppImage bundles all required shared libraries (`libSDL2`, `libfreetype`, `libharfbuzz`, `libpng`) and Japanese Noto CJK Bold fonts. It runs on any modern 64-bit Linux distribution including SteamOS, Arch Linux, Ubuntu, Fedora, Debian, and openSUSE.

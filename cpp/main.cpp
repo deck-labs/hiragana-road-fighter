@@ -1721,9 +1721,26 @@ int main(int argc, char* argv[]) {
                 openControllers();
             } else if (event.type == SDL_CONTROLLERBUTTONDOWN) {
                 Uint8 btn = event.cbutton.button;
-                if (btn == SDL_CONTROLLER_BUTTON_BACK) {
+
+                // Check for simultaneous SELECT + START quit combination
+                bool isQuitCombo = false;
+                SDL_GameController* evCtrl = SDL_GameControllerFromInstanceID(event.cbutton.which);
+                if (evCtrl && SDL_GameControllerGetButton(evCtrl, SDL_CONTROLLER_BUTTON_BACK) &&
+                              SDL_GameControllerGetButton(evCtrl, SDL_CONTROLLER_BUTTON_START)) {
+                    isQuitCombo = true;
+                }
+                for (auto* c : controllers) {
+                    if (c && SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_BACK) &&
+                             SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_START)) {
+                        isQuitCombo = true;
+                        break;
+                    }
+                }
+
+                if (isQuitCombo) {
                     running = false;
-                } else if (btn == SDL_CONTROLLER_BUTTON_START) {
+                } else if (btn == SDL_CONTROLLER_BUTTON_BACK || btn == SDL_CONTROLLER_BUTTON_START) {
+                    // Both SELECT and START toggle pause during gameplay / resume when paused
                     if (gameState == PLAYING) {
                         gameState = PAUSED;
                         audio.setEngine(AudioEngine::ENG_OFF);
@@ -1775,7 +1792,38 @@ int main(int argc, char* argv[]) {
                     }
                 }
             } else if (event.type == SDL_JOYBUTTONDOWN) {
-                if (gameState == PAUSED) {
+                // Check raw joystick simultaneous combo for quit (button 6+7 or 8+9)
+                SDL_Joystick* evJoy = SDL_JoystickFromInstanceID(event.jbutton.which);
+                bool joyQuit = false;
+                if (evJoy && ((SDL_JoystickGetButton(evJoy, 6) && SDL_JoystickGetButton(evJoy, 7)) ||
+                              (SDL_JoystickGetButton(evJoy, 8) && SDL_JoystickGetButton(evJoy, 9)))) {
+                    joyQuit = true;
+                }
+                for (auto* j : joysticks) {
+                    if (j && ((SDL_JoystickGetButton(j, 6) && SDL_JoystickGetButton(j, 7)) ||
+                              (SDL_JoystickGetButton(j, 8) && SDL_JoystickGetButton(j, 9)))) {
+                        joyQuit = true;
+                        break;
+                    }
+                }
+
+                if (joyQuit) {
+                    running = false;
+                } else if (event.jbutton.button == 6 || event.jbutton.button == 7 ||
+                           event.jbutton.button == 8 || event.jbutton.button == 9) {
+                    if (gameState == PLAYING) {
+                        gameState = PAUSED;
+                        audio.setEngine(AudioEngine::ENG_OFF);
+                    } else if (gameState == PAUSED) {
+                        gameState = PLAYING;
+                    } else if (gameState == CLEAR) {
+                        if (currentStage == 1) startStage(2, true);
+                        else if (currentStage == 2) startStage(3, true);
+                        else startStage(1, false);
+                    } else if (gameState == OVER) {
+                        startStage(currentStage, false);
+                    }
+                } else if (gameState == PAUSED) {
                     if (event.jbutton.button == 0 || event.jbutton.button == 1) {
                         if (pauseMenuIndex == 0) gameState = PLAYING;
                         else if (pauseMenuIndex == 1) applyFullscreenMode(!isFullscreen);
@@ -1846,6 +1894,22 @@ int main(int argc, char* argv[]) {
                         }
                     }
                 }
+            }
+        }
+
+        // Continuous check for simultaneous SELECT + START quit combination
+        for (auto* c : controllers) {
+            if (c && SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_BACK) &&
+                     SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_START)) {
+                running = false;
+                break;
+            }
+        }
+        for (auto* j : joysticks) {
+            if (j && ((SDL_JoystickGetButton(j, 6) && SDL_JoystickGetButton(j, 7)) ||
+                      (SDL_JoystickGetButton(j, 8) && SDL_JoystickGetButton(j, 9)))) {
+                running = false;
+                break;
             }
         }
 
@@ -3127,9 +3191,10 @@ int main(int argc, char* argv[]) {
         drawKeycap(rCardX + 16, 684, 190, 24, "D-PAD / STICK", "STEER CAR");
         drawKeycap(rCardX + 218, 684, 194, 24, "UP / (A) / RT", "TURBO BOOST", {255, 140, 40, 255});
         drawKeycap(rCardX + 16, 716, 190, 24, "DOWN / (X) / LT", "BRAKE / DRIFT", {0, 210, 255, 255});
-        drawKeycap(rCardX + 218, 716, 194, 24, "START / P", "PAUSE & CONFIG");
+        drawKeycap(rCardX + 218, 716, 194, 24, "SELECT / START", "PAUSE");
 
-        textRenderer.drawTextWithShadow(renderer, "MISSION: Read your roof Kana & match corresponding Romaji!", rCardX + rCardW / 2, 762, 11, {255, 225, 60, 255}, true);
+        textRenderer.drawTextWithShadow(renderer, "QUIT: Press SELECT + START simultaneously to Exit", rCardX + rCardW / 2, 748, 10, {150, 175, 205, 255}, true);
+        textRenderer.drawTextWithShadow(renderer, "MISSION: Read your roof Kana & match corresponding Romaji!", rCardX + rCardW / 2, 768, 11, {255, 225, 60, 255}, true);
 
         // =========================================================================
         // --- PAUSE & OPTIONS MENU (Triggered by START / P / ESC) ---
@@ -3283,7 +3348,7 @@ int main(int argc, char* argv[]) {
             if (!statusMessage.empty() && SDL_GetTicks() - statusMessageTime < 3500) {
                 textRenderer.drawTextWithShadow(renderer, "●  " + statusMessage, mx + mw / 2, fy + 22, 13, {100, 255, 180, 255}, true);
             } else {
-                textRenderer.drawTextWithShadow(renderer, "D-Pad / Stick / W/S: Navigate   |   (A) / Space: Select   |   (B) / START / ESC: Resume", mx + mw / 2, fy + 22, 12, {170, 185, 205, 255}, true);
+                textRenderer.drawTextWithShadow(renderer, "D-Pad / W/S: Navigate   |   (A) / Space: Select   |   SELECT / START: Resume   |   SELECT+START: Quit", mx + mw / 2, fy + 22, 12, {170, 185, 205, 255}, true);
             }
         } else if (gameState != PLAYING) {
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -3338,7 +3403,7 @@ int main(int argc, char* argv[]) {
                 textRenderer.drawTextWithShadow(renderer, "Press SPACE or (A) to retry", INTERNAL_WIDTH / 2, dy + 225, 20, {255, 235, 59, 255}, true);
             }
 
-            textRenderer.drawTextWithShadow(renderer, "Press Q or BACK to quit", INTERNAL_WIDTH / 2, dy + 310, 16, {170, 185, 205, 255}, true);
+            textRenderer.drawTextWithShadow(renderer, "Press Q or SELECT + START to quit", INTERNAL_WIDTH / 2, dy + 310, 16, {170, 185, 205, 255}, true);
         }
 
         // 4. Render Target Texture to Window with Auto-Detected Aspect Ratio Scaling

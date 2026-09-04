@@ -95,8 +95,12 @@ if [ ! -f /tmp/appimagetool ]; then
 fi
 
 OUT_FILE="/home/deck/Downloads/Hiragana_Road_Fighter-x86_64.AppImage"
+rm -f "$OUT_FILE" "/home/deck/Downloads/Hiragana_Road_Fighter-v0.01-x86_64.AppImage"
 ARCH=x86_64 /tmp/appimagetool "$APPDIR" "$OUT_FILE"
 chmod +x "$OUT_FILE"
-cp -f "$OUT_FILE" "/home/deck/Downloads/Hiragana_Road_Fighter-v0.01-x86_64.AppImage"
 
-echo "=== AppImage created successfully: $OUT_FILE and v0.01 ==="
+# Place single unversioned AppImage in workspace root
+cp -f "$OUT_FILE" "$DIR/Hiragana_Road_Fighter-x86_64.AppImage"
+rm -f "$DIR/Hiragana_Road_Fighter-v0.01-x86_64.AppImage"
+
+echo "=== AppImage created successfully (single unversioned): $OUT_FILE ==="
