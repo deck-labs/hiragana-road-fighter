@@ -106,14 +106,80 @@ inline void getRoadEdges(int stage, float worldY, float trackDist, float& outLef
     constexpr float normalRight = static_cast<float>(GAME_X + GAME_W - ROAD_MARGIN);
     (void)trackDist;
 
-    if (stage == 1 || worldY < 0.0f || worldY >= STAGE_TRACK_LENGTH - 2000.0f) {
+    if (stage == 1 || worldY < 0.0f) {
         outLeft = normalLeft;
         outRight = normalRight;
         return;
     }
 
+    if (stage == 2) {
+        // Stage 2: Elevated Coastal Highway Bridge
+        // Straight home stretch for finish line (Segment 9: last 1600 units)
+        if (worldY >= STAGE_TRACK_LENGTH - 1600.0f) {
+            outLeft = normalLeft;
+            outRight = normalRight;
+            return;
+        }
+
+        constexpr float SEGMENT_LEN = 1600.0f;
+        int segIdx = static_cast<int>(worldY / SEGMENT_LEN);
+        float segPos = std::fmod(worldY, SEGMENT_LEN);
+        if (segPos < 0.0f) segPos += SEGMENT_LEN;
+
+        // Target narrow bounds for this segment
+        float targetLeft = normalLeft;
+        float targetRight = normalRight;
+
+        int type = std::abs(segIdx) % 3;
+        if (type == 0) {
+            // Left pinch (curb narrows from left, width = 320)
+            targetLeft = normalLeft + 100.0f;
+        } else if (type == 1) {
+            // Right pinch (curb narrows from right, width = 320)
+            targetRight = normalRight - 100.0f;
+        } else {
+            // Center bottleneck bridge (width = 280)
+            targetLeft = normalLeft + 70.0f;
+            targetRight = normalRight - 70.0f;
+        }
+
+        // 0 - 450: Normal
+        // 450 - 650: Taper in
+        // 650 - 1250: Narrow street
+        // 1250 - 1450: Taper out
+        // 1450 - 1600: Normal
+        if (segPos < 450.0f) {
+            outLeft = normalLeft;
+            outRight = normalRight;
+        } else if (segPos < 650.0f) {
+            float t = (segPos - 450.0f) / 200.0f;
+            float smoothT = 0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI));
+            outLeft = normalLeft + (targetLeft - normalLeft) * smoothT;
+            outRight = normalRight + (targetRight - normalRight) * smoothT;
+        } else if (segPos < 1250.0f) {
+            outLeft = targetLeft;
+            outRight = targetRight;
+        } else if (segPos < 1450.0f) {
+            float t = (segPos - 1250.0f) / 200.0f;
+            float smoothT = 0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI));
+            outLeft = targetLeft + (normalLeft - targetLeft) * smoothT;
+            outRight = targetRight + (normalRight - targetRight) * smoothT;
+        } else {
+            outLeft = normalLeft;
+            outRight = normalRight;
+        }
+        return;
+    }
+
     if (stage == 3) {
         // Stage 3: High-Speed Winding Coastal Beach Highway
+        // Straight home stretch for finish line (Segment 7: last 2000 units)
+        if (worldY >= STAGE_TRACK_LENGTH - 2000.0f) {
+            outLeft = normalLeft;
+            outRight = normalRight;
+            return;
+        }
+
         // Constant 4-lane road width (420px) with mathematically continuous C1 sweeping coastal curves
         constexpr float SEGMENT_LEN = 2000.0f;
         int segIdx = static_cast<int>(worldY / SEGMENT_LEN);
@@ -176,54 +242,8 @@ inline void getRoadEdges(int stage, float worldY, float trackDist, float& outLef
         return;
     }
 
-    // Stage 2: Elevated Coastal Highway Bridge
-    constexpr float SEGMENT_LEN = 1600.0f;
-    int segIdx = static_cast<int>(worldY / SEGMENT_LEN);
-    float segPos = std::fmod(worldY, SEGMENT_LEN);
-    if (segPos < 0.0f) segPos += SEGMENT_LEN;
-
-    // Target narrow bounds for this segment
-    float targetLeft = normalLeft;
-    float targetRight = normalRight;
-
-    int type = std::abs(segIdx) % 3;
-    if (type == 0) {
-        // Left pinch (curb narrows from left, width = 320)
-        targetLeft = normalLeft + 100.0f;
-    } else if (type == 1) {
-        // Right pinch (curb narrows from right, width = 320)
-        targetRight = normalRight - 100.0f;
-    } else {
-        // Center bottleneck bridge (width = 280)
-        targetLeft = normalLeft + 70.0f;
-        targetRight = normalRight - 70.0f;
-    }
-
-    // 0 - 450: Normal
-    // 450 - 650: Taper in
-    // 650 - 1250: Narrow street
-    // 1250 - 1450: Taper out
-    // 1450 - 1600: Normal
-    if (segPos < 450.0f) {
-        outLeft = normalLeft;
-        outRight = normalRight;
-    } else if (segPos < 650.0f) {
-        float t = (segPos - 450.0f) / 200.0f;
-        float smoothT = 0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI));
-        outLeft = normalLeft + (targetLeft - normalLeft) * smoothT;
-        outRight = normalRight + (targetRight - normalRight) * smoothT;
-    } else if (segPos < 1250.0f) {
-        outLeft = targetLeft;
-        outRight = targetRight;
-    } else if (segPos < 1450.0f) {
-        float t = (segPos - 1250.0f) / 200.0f;
-        float smoothT = 0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI));
-        outLeft = targetLeft + (normalLeft - targetLeft) * smoothT;
-        outRight = targetRight + (normalRight - targetRight) * smoothT;
-    } else {
-        outLeft = normalLeft;
-        outRight = normalRight;
-    }
+    outLeft = normalLeft;
+    outRight = normalRight;
 }
 
 // --- Audio Synthesizer ---
@@ -1455,8 +1475,11 @@ int main(int argc, char* argv[]) {
     int screenshotTargetFrame = 90;
     int screenshotStage = 1;
     bool screenshotPause = false;
+    float screenshotTrackDist = 0.0f;
     for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--screenshot" && i + 1 < argc) {
+        if (std::string(argv[i]) == "--trackdist" && i + 1 < argc) {
+            screenshotTrackDist = std::stof(argv[++i]);
+        } else if (std::string(argv[i]) == "--screenshot" && i + 1 < argc) {
             screenshotPath = argv[++i];
             if (i + 1 < argc && argv[i + 1][0] != '-') screenshotTargetFrame = std::stoi(argv[++i]);
             if (i + 1 < argc && argv[i + 1][0] != '-') {
@@ -1712,6 +1735,10 @@ int main(int argc, char* argv[]) {
 
     auto resetGame = [&]() {
         startStage(screenshotStage, false);
+        if (screenshotTrackDist > 0.0f) {
+            trackDistance = screenshotTrackDist;
+            roadOffset = screenshotTrackDist;
+        }
         if (screenshotPause) {
             gameState = PAUSED;
         }
