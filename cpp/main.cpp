@@ -104,74 +104,75 @@ inline const std::vector<KanaData>& getStageKana(int stage) {
 inline void getRoadEdges(int stage, float worldY, float trackDist, float& outLeft, float& outRight) {
     constexpr float normalLeft = static_cast<float>(GAME_X + ROAD_MARGIN);
     constexpr float normalRight = static_cast<float>(GAME_X + GAME_W - ROAD_MARGIN);
+    (void)trackDist;
 
-    if (stage == 1 || trackDist >= STAGE_TRACK_LENGTH - 1200.0f) {
+    if (stage == 1 || worldY < 0.0f || worldY >= STAGE_TRACK_LENGTH - 2000.0f) {
         outLeft = normalLeft;
         outRight = normalRight;
         return;
     }
 
     if (stage == 3) {
-        // Stage 3: High-Speed Winding Curves & Chicanes
-        constexpr float SEGMENT_LEN = 2400.0f;
+        // Stage 3: High-Speed Winding Coastal Beach Highway
+        // Constant 4-lane road width (420px) with mathematically continuous C1 sweeping coastal curves
+        constexpr float SEGMENT_LEN = 2000.0f;
         int segIdx = static_cast<int>(worldY / SEGMENT_LEN);
         float segPos = std::fmod(worldY, SEGMENT_LEN);
         if (segPos < 0.0f) segPos += SEGMENT_LEN;
 
         int pattern = std::abs(segIdx) % 4;
         float curveShift = 0.0f;
-        float widthNarrow = 0.0f;
 
         if (pattern == 0) {
-            // Sweeping long left turn
-            if (segPos >= 400.0f && segPos < 800.0f) {
-                float t = (segPos - 400.0f) / 400.0f;
+            // Sweeping long left coastal bend
+            if (segPos >= 300.0f && segPos < 700.0f) {
+                float t = (segPos - 300.0f) / 400.0f;
                 curveShift = -65.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
-            } else if (segPos >= 800.0f && segPos < 1600.0f) {
+            } else if (segPos >= 700.0f && segPos < 1300.0f) {
                 curveShift = -65.0f;
-            } else if (segPos >= 1600.0f && segPos < 2000.0f) {
-                float t = (segPos - 1600.0f) / 400.0f;
+            } else if (segPos >= 1300.0f && segPos < 1700.0f) {
+                float t = (segPos - 1300.0f) / 400.0f;
                 curveShift = -65.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
             }
         } else if (pattern == 1) {
-            // Sweeping long right turn
-            if (segPos >= 400.0f && segPos < 800.0f) {
-                float t = (segPos - 400.0f) / 400.0f;
-                curveShift = 70.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
-            } else if (segPos >= 800.0f && segPos < 1600.0f) {
-                curveShift = 70.0f;
-            } else if (segPos >= 1600.0f && segPos < 2000.0f) {
-                float t = (segPos - 1600.0f) / 400.0f;
-                curveShift = 70.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            // Sweeping long right ocean bend
+            if (segPos >= 300.0f && segPos < 700.0f) {
+                float t = (segPos - 300.0f) / 400.0f;
+                curveShift = 65.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 700.0f && segPos < 1300.0f) {
+                curveShift = 65.0f;
+            } else if (segPos >= 1300.0f && segPos < 1700.0f) {
+                float t = (segPos - 1300.0f) / 400.0f;
+                curveShift = 65.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
             }
         } else if (pattern == 2) {
-            // S-Chicane (rapid left then right)
-            if (segPos >= 300.0f && segPos < 800.0f) {
-                float t = (segPos - 300.0f) / 500.0f;
+            // Coastal S-Chicane (smooth left then right)
+            if (segPos >= 250.0f && segPos < 650.0f) {
+                float t = (segPos - 250.0f) / 400.0f;
                 curveShift = -60.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
-            } else if (segPos >= 800.0f && segPos < 1300.0f) {
-                float t = (segPos - 800.0f) / 500.0f;
+            } else if (segPos >= 650.0f && segPos < 1350.0f) {
+                float t = (segPos - 650.0f) / 700.0f;
                 curveShift = -60.0f + 120.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
-            } else if (segPos >= 1300.0f && segPos < 1800.0f) {
-                float t = (segPos - 1300.0f) / 500.0f;
+            } else if (segPos >= 1350.0f && segPos < 1750.0f) {
+                float t = (segPos - 1350.0f) / 400.0f;
                 curveShift = 60.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
             }
-            widthNarrow = 20.0f;
         } else {
-            // Express Straightaway with elevated expressway narrows
-            if (segPos >= 500.0f && segPos < 900.0f) {
-                float t = (segPos - 500.0f) / 400.0f;
-                widthNarrow = 30.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
-            } else if (segPos >= 900.0f && segPos < 1700.0f) {
-                widthNarrow = 30.0f;
-            } else if (segPos >= 1700.0f && segPos < 2100.0f) {
-                float t = (segPos - 1700.0f) / 400.0f;
-                widthNarrow = 30.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            // Coastal Reverse S-Chicane (smooth right then left)
+            if (segPos >= 250.0f && segPos < 650.0f) {
+                float t = (segPos - 250.0f) / 400.0f;
+                curveShift = 60.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 650.0f && segPos < 1350.0f) {
+                float t = (segPos - 650.0f) / 700.0f;
+                curveShift = 60.0f - 120.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 1350.0f && segPos < 1750.0f) {
+                float t = (segPos - 1350.0f) / 400.0f;
+                curveShift = -60.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
             }
         }
 
-        outLeft = normalLeft + curveShift + widthNarrow;
-        outRight = normalRight + curveShift - widthNarrow;
+        outLeft = normalLeft + curveShift;
+        outRight = normalRight + curveShift;
         return;
     }
 
