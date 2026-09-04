@@ -289,6 +289,11 @@ public:
         activeSounds.push_back({sndSkid, 0});
     }
 
+    void playPause() {
+        std::lock_guard<std::mutex> lock(audioMutex);
+        activeSounds.push_back({sndPause, 0});
+    }
+
 private:
     struct SoundInstance {
         std::vector<int16_t> samples;
@@ -305,6 +310,7 @@ private:
     std::vector<int16_t> sndClear;
     std::vector<int16_t> sndGameOver;
     std::vector<int16_t> sndSkid;
+    std::vector<int16_t> sndPause;
     std::vector<SoundInstance> activeSounds;
 
     static void audioCallback(void* userdata, Uint8* stream, int len) {
@@ -436,6 +442,20 @@ private:
                 float noise = dist(rng) * 0.4f;
                 float env = 1.0f - (t / dur);
                 sndSkid[i] = static_cast<int16_t>((sq * 0.6f + noise) * 0.28f * 32767.0f * env);
+            }
+        }
+
+        // Classic NES 8-bit pause chirp (quick ascending dual-tone 660 Hz -> 880 Hz square wave)
+        {
+            float dur = 0.09f;
+            int total = static_cast<int>(dur * sampleRate);
+            sndPause.resize(total);
+            for (int i = 0; i < total; ++i) {
+                float t = static_cast<float>(i) / sampleRate;
+                float f = (t < 0.045f) ? 659.25f : 880.0f;
+                float w = std::sin(2.0f * M_PI * f * t) >= 0.0f ? 1.0f : -1.0f;
+                float env = 1.0f - (t / dur) * 0.3f;
+                sndPause[i] = static_cast<int16_t>(w * 0.25f * 32767.0f * env);
             }
         }
     }
@@ -1579,9 +1599,6 @@ int main(int argc, char* argv[]) {
     int currentStage = 1;
 
     bool isFullscreen = screenshotPath.empty();
-    int pauseMenuIndex = 0; // 0: Resume, 1: Screen Mode, 2: Restart Stage, 3: Quit
-    std::string statusMessage = "";
-    Uint32 statusMessageTime = 0;
 
     auto applyFullscreenMode = [&](bool fullscreen) {
         isFullscreen = fullscreen;
@@ -1597,17 +1614,15 @@ int main(int argc, char* argv[]) {
                 SDL_SetWindowDisplayMode(window, &mode);
             }
             SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-            statusMessage = "SCREEN MODE: Fullscreen (Native " + std::to_string(autoResW) + "x" + std::to_string(autoResH) + ")";
+            std::cout << "[Video] SCREEN MODE: Fullscreen (Native " << autoResW << "x" << autoResH << ")" << std::endl;
         } else {
             SDL_SetWindowFullscreen(window, 0);
             int winW = std::min(autoResW, (autoResW > 1280 ? 1280 : static_cast<int>(autoResW * 0.85f)));
             int winH = static_cast<int>(winW / autoAspectRatio);
             SDL_SetWindowSize(window, winW, winH);
             SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-            statusMessage = "SCREEN MODE: Windowed (" + std::to_string(winW) + "x" + std::to_string(winH) + ")";
+            std::cout << "[Video] SCREEN MODE: Windowed (" << winW << "x" << winH << ")" << std::endl;
         }
-        statusMessageTime = SDL_GetTicks();
-        std::cout << "[Video] " << statusMessage << std::endl;
     };
 
     Car player;
@@ -1740,12 +1755,14 @@ int main(int argc, char* argv[]) {
                 if (isQuitCombo) {
                     running = false;
                 } else if (btn == SDL_CONTROLLER_BUTTON_BACK || btn == SDL_CONTROLLER_BUTTON_START) {
-                    // Both SELECT and START toggle pause during gameplay / resume when paused
+                    // Both SELECT and START toggle pause during gameplay / unpause when paused (NES style)
                     if (gameState == PLAYING) {
                         gameState = PAUSED;
                         audio.setEngine(AudioEngine::ENG_OFF);
+                        audio.playPause();
                     } else if (gameState == PAUSED) {
                         gameState = PLAYING;
+                        audio.playPause();
                     } else if (gameState == CLEAR) {
                         if (currentStage == 1) startStage(2, true);
                         else if (currentStage == 2) startStage(3, true);
@@ -1753,29 +1770,7 @@ int main(int argc, char* argv[]) {
                     } else if (gameState == OVER) {
                         startStage(currentStage, false);
                     }
-                } else if (gameState == PAUSED) {
-                    if (btn == SDL_CONTROLLER_BUTTON_DPAD_UP) {
-                        pauseMenuIndex = (pauseMenuIndex == 0 ? 3 : pauseMenuIndex - 1);
-                    } else if (btn == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-                        pauseMenuIndex = (pauseMenuIndex == 3 ? 0 : pauseMenuIndex + 1);
-                    } else if (btn == SDL_CONTROLLER_BUTTON_DPAD_LEFT || btn == SDL_CONTROLLER_BUTTON_DPAD_RIGHT) {
-                        if (pauseMenuIndex == 1) {
-                            applyFullscreenMode(!isFullscreen);
-                        }
-                    } else if (btn == SDL_CONTROLLER_BUTTON_A || btn == SDL_CONTROLLER_BUTTON_X) {
-                        if (pauseMenuIndex == 0) {
-                            gameState = PLAYING;
-                        } else if (pauseMenuIndex == 1) {
-                            applyFullscreenMode(!isFullscreen);
-                        } else if (pauseMenuIndex == 2) {
-                            startStage(currentStage, false);
-                        } else if (pauseMenuIndex == 3) {
-                            running = false;
-                        }
-                    } else if (btn == SDL_CONTROLLER_BUTTON_B) {
-                        gameState = PLAYING;
-                    }
-                } else if (gameState != PLAYING) {
+                } else if (gameState != PLAYING && gameState != PAUSED) {
                     if (btn == SDL_CONTROLLER_BUTTON_A || btn == SDL_CONTROLLER_BUTTON_B || btn == SDL_CONTROLLER_BUTTON_X) {
                         if (gameState == CLEAR) {
                             if (currentStage == 1) {
@@ -1814,8 +1809,10 @@ int main(int argc, char* argv[]) {
                     if (gameState == PLAYING) {
                         gameState = PAUSED;
                         audio.setEngine(AudioEngine::ENG_OFF);
+                        audio.playPause();
                     } else if (gameState == PAUSED) {
                         gameState = PLAYING;
+                        audio.playPause();
                     } else if (gameState == CLEAR) {
                         if (currentStage == 1) startStage(2, true);
                         else if (currentStage == 2) startStage(3, true);
@@ -1823,14 +1820,7 @@ int main(int argc, char* argv[]) {
                     } else if (gameState == OVER) {
                         startStage(currentStage, false);
                     }
-                } else if (gameState == PAUSED) {
-                    if (event.jbutton.button == 0 || event.jbutton.button == 1) {
-                        if (pauseMenuIndex == 0) gameState = PLAYING;
-                        else if (pauseMenuIndex == 1) applyFullscreenMode(!isFullscreen);
-                        else if (pauseMenuIndex == 2) startStage(currentStage, false);
-                        else if (pauseMenuIndex == 3) running = false;
-                    }
-                } else if (gameState != PLAYING) {
+                } else if (gameState != PLAYING && gameState != PAUSED) {
                     if (gameState == CLEAR) {
                         if (currentStage == 1) startStage(2, true);
                         else if (currentStage == 2) startStage(3, true);
@@ -1851,34 +1841,18 @@ int main(int argc, char* argv[]) {
                 SDL_Keycode sym = event.key.keysym.sym;
                 if (sym == SDLK_q) {
                     running = false;
+                } else if (sym == SDLK_F11 || (sym == SDLK_RETURN && (event.key.keysym.mod & KMOD_ALT))) {
+                    applyFullscreenMode(!isFullscreen);
                 } else if (sym == SDLK_ESCAPE || sym == SDLK_p || sym == SDLK_TAB) {
                     if (gameState == PLAYING) {
                         gameState = PAUSED;
                         audio.setEngine(AudioEngine::ENG_OFF);
+                        audio.playPause();
                     } else if (gameState == PAUSED) {
                         gameState = PLAYING;
+                        audio.playPause();
                     }
-                } else if (gameState == PAUSED) {
-                    if (sym == SDLK_UP || sym == SDLK_w) {
-                        pauseMenuIndex = (pauseMenuIndex == 0 ? 3 : pauseMenuIndex - 1);
-                    } else if (sym == SDLK_DOWN || sym == SDLK_s) {
-                        pauseMenuIndex = (pauseMenuIndex == 3 ? 0 : pauseMenuIndex + 1);
-                    } else if (sym == SDLK_LEFT || sym == SDLK_a || sym == SDLK_RIGHT || sym == SDLK_d) {
-                        if (pauseMenuIndex == 1) {
-                            applyFullscreenMode(!isFullscreen);
-                        }
-                    } else if (sym == SDLK_RETURN || sym == SDLK_SPACE) {
-                        if (pauseMenuIndex == 0) {
-                            gameState = PLAYING;
-                        } else if (pauseMenuIndex == 1) {
-                            applyFullscreenMode(!isFullscreen);
-                        } else if (pauseMenuIndex == 2) {
-                            startStage(currentStage, false);
-                        } else if (pauseMenuIndex == 3) {
-                            running = false;
-                        }
-                    }
-                } else if (gameState != PLAYING) {
+                } else if (gameState != PLAYING && gameState != PAUSED) {
                     if (sym == SDLK_SPACE || sym == SDLK_RETURN) {
                         if (gameState == CLEAR) {
                             if (currentStage == 1) {
@@ -3197,158 +3171,15 @@ int main(int argc, char* argv[]) {
         textRenderer.drawTextWithShadow(renderer, "MISSION: Read your roof Kana & match corresponding Romaji!", rCardX + rCardW / 2, 768, 11, {255, 225, 60, 255}, true);
 
         // =========================================================================
-        // --- PAUSE & OPTIONS MENU (Triggered by START / P / ESC) ---
+        // --- NES-STYLE BLINKING PAUSE (Triggered by SELECT / START / P / ESC) ---
         // =========================================================================
         if (gameState == PAUSED) {
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 225);
-            SDL_Rect ov = {0, 0, INTERNAL_WIDTH, INTERNAL_HEIGHT};
-            SDL_RenderFillRect(renderer, &ov);
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
-
-            int mw = 680, mh = 560;
-            int mx = (INTERNAL_WIDTH - mw) / 2;
-            int my = (INTERNAL_HEIGHT - mh) / 2;
-
-            // Outer drop shadow
-            SDL_SetRenderDrawColor(renderer, 5, 8, 14, 180);
-            SDL_Rect mShadow = {mx + 8, my + 8, mw, mh};
-            SDL_RenderFillRect(renderer, &mShadow);
-
-            // Main Menu Container
-            SDL_SetRenderDrawColor(renderer, 20, 26, 38, 255);
-            SDL_Rect mBg = {mx, my, mw, mh};
-            SDL_RenderFillRect(renderer, &mBg);
-            SDL_SetRenderDrawColor(renderer, 58, 80, 115, 255);
-            SDL_RenderDrawRect(renderer, &mBg);
-
-            // Header Banner
-            SDL_SetRenderDrawColor(renderer, 28, 38, 56, 255);
-            SDL_Rect mHead = {mx, my, mw, 52};
-            SDL_RenderFillRect(renderer, &mHead);
-            SDL_SetRenderDrawColor(renderer, 75, 100, 138, 255);
-            SDL_RenderDrawRect(renderer, &mHead);
-
-            textRenderer.drawTextWithShadow(renderer, "★  PAUSE & OPTIONS  ★", mx + mw / 2, my + 26, 22, {255, 235, 59, 255}, true);
-
-            // --- Section 1: Auto-Configuration Telemetry Card ---
-            int cardX = mx + 25;
-            int cardY = my + 66;
-            int cardW = mw - 50;
-            int cardH = 116;
-
-            SDL_SetRenderDrawColor(renderer, 24, 32, 46, 255);
-            SDL_Rect cBox = {cardX, cardY, cardW, cardH};
-            SDL_RenderFillRect(renderer, &cBox);
-            GameTextures::drawTiled(renderer, textures.carbonTex, cardX, cardY, cardW, cardH, 0, 0, 64, 64);
-            SDL_SetRenderDrawColor(renderer, 55, 75, 105, 255);
-            SDL_RenderDrawRect(renderer, &cBox);
-
-            // Telemetry Header
-            textRenderer.drawTextWithShadow(renderer, "DISPLAY AUTO-DETECTION", cardX + 16, cardY + 18, 13, {100, 220, 255, 255});
-
-            // "AUTO-CONFIGURED" Status Badge
-            SDL_SetRenderDrawColor(renderer, 25, 75, 45, 255);
-            SDL_Rect autoPill = {cardX + cardW - 170, cardY + 8, 154, 22};
-            SDL_RenderFillRect(renderer, &autoPill);
-            SDL_SetRenderDrawColor(renderer, 46, 204, 113, 255);
-            SDL_RenderDrawRect(renderer, &autoPill);
-            textRenderer.drawTextWithShadow(renderer, "● OPTIMIZED & ACTIVE", cardX + cardW - 93, cardY + 19, 11, {46, 204, 113, 255}, true);
-
-            // Telemetry Specs
-            std::string resStr = "Detected Maximum Resolution:  " + std::to_string(autoResW) + " × " + std::to_string(autoResH);
-            textRenderer.drawTextWithShadow(renderer, resStr, cardX + 16, cardY + 48, 14, {230, 238, 248, 255});
-
-            std::string aspStr = "Best Aspect Ratio Applied:      " + autoAspectLabel;
-            textRenderer.drawTextWithShadow(renderer, aspStr, cardX + 16, cardY + 74, 14, {255, 235, 59, 255});
-
-            std::string engStr = "Hardware Render Pipeline:       SDL2 Accelerated (Locked 60 FPS)";
-            textRenderer.drawTextWithShadow(renderer, engStr, cardX + 16, cardY + 98, 12, {160, 175, 195, 255});
-
-            // --- Section 2: Interactive Menu Buttons (0..3) ---
-            struct MenuItem {
-                std::string label;
-                std::string subtext;
-                SDL_Color color;
-            };
-
-            std::string screenModeSubtext = isFullscreen ? "Mode: [ FULLSCREEN ]  (Press (A) or Left/Right to toggle)"
-                                                         : "Mode: [ WINDOWED ]    (Press (A) or Left/Right to toggle)";
-
-            const MenuItem items[4] = {
-                {"RESUME RACE", "Return immediately to high-speed action", {100, 220, 255, 255}},
-                {"SCREEN MODE: " + std::string(isFullscreen ? "FULLSCREEN" : "WINDOWED"), screenModeSubtext, {255, 235, 59, 255}},
-                {"RESTART CURRENT STAGE", "Reset track distance and fuel to initial state", {255, 200, 80, 255}},
-                {"QUIT TO DESKTOP", "Exit game session and return to desktop", {255, 90, 90, 255}}
-            };
-
-            int startBtnY = cardY + cardH + 16;
-            for (int i = 0; i < 4; ++i) {
-                int btnY = startBtnY + i * 58;
-                int btnW = cardW;
-                int btnH = 50;
-                int btnX = cardX;
-                bool isSelected = (pauseMenuIndex == i);
-
-                if (isSelected) {
-                    SDL_SetRenderDrawColor(renderer, 48, 68, 98, 255);
-                    SDL_Rect rBtn = {btnX, btnY, btnW, btnH};
-                    SDL_RenderFillRect(renderer, &rBtn);
-                    SDL_SetRenderDrawColor(renderer, 255, 235, 59, 255);
-                    SDL_RenderDrawRect(renderer, &rBtn);
-
-                    // Crisp geometric selection arrow
-                    SDL_SetRenderDrawColor(renderer, 255, 235, 59, 255);
-                    for (int dx = 0; dx <= 8; ++dx) {
-                        SDL_RenderDrawLine(renderer, btnX + 15 + dx, btnY + 25 - (8 - dx), btnX + 15 + dx, btnY + 25 + (8 - dx));
-                    }
-                } else {
-                    SDL_SetRenderDrawColor(renderer, 26, 35, 48, 255);
-                    SDL_Rect rBtn = {btnX, btnY, btnW, btnH};
-                    SDL_RenderFillRect(renderer, &rBtn);
-                    SDL_SetRenderDrawColor(renderer, 44, 58, 78, 255);
-                    SDL_RenderDrawRect(renderer, &rBtn);
-                }
-
-                // Item Title
-                SDL_Color titleCol = isSelected ? SDL_Color{255, 255, 255, 255} : items[i].color;
-                textRenderer.drawTextWithShadow(renderer, items[i].label, btnX + (isSelected ? 36 : 18), btnY + 18, 15, titleCol);
-
-                // Subtext
-                textRenderer.drawTextWithShadow(renderer, items[i].subtext, btnX + (isSelected ? 36 : 18), btnY + 36, 11, {160, 178, 198, 255});
-
-                // Status pill for Screen Mode
-                if (i == 1) {
-                    if (isFullscreen) {
-                        SDL_SetRenderDrawColor(renderer, 25, 75, 45, 255);
-                        SDL_Rect fsPill = {btnX + btnW - 120, btnY + 13, 108, 24};
-                        SDL_RenderFillRect(renderer, &fsPill);
-                        SDL_SetRenderDrawColor(renderer, 46, 204, 113, 255);
-                        SDL_RenderDrawRect(renderer, &fsPill);
-                        textRenderer.drawTextWithShadow(renderer, "FULLSCREEN", btnX + btnW - 66, btnY + 25, 11, {46, 204, 113, 255}, true);
-                    } else {
-                        SDL_SetRenderDrawColor(renderer, 50, 60, 80, 255);
-                        SDL_Rect winPill = {btnX + btnW - 120, btnY + 13, 108, 24};
-                        SDL_RenderFillRect(renderer, &winPill);
-                        SDL_SetRenderDrawColor(renderer, 100, 180, 255, 255);
-                        SDL_RenderDrawRect(renderer, &winPill);
-                        textRenderer.drawTextWithShadow(renderer, "WINDOWED", btnX + btnW - 66, btnY + 25, 11, {100, 180, 255, 255}, true);
-                    }
-                }
-            }
-
-            // --- Section 3: Footer Help / Toast Notification Bar ---
-            int fy = my + mh - 44;
-            SDL_SetRenderDrawColor(renderer, 26, 34, 48, 255);
-            SDL_Rect fHead = {mx, fy, mw, 44};
-            SDL_RenderFillRect(renderer, &fHead);
-            SDL_SetRenderDrawColor(renderer, 55, 75, 105, 255);
-            SDL_RenderDrawRect(renderer, &fHead);
-
-            if (!statusMessage.empty() && SDL_GetTicks() - statusMessageTime < 3500) {
-                textRenderer.drawTextWithShadow(renderer, "●  " + statusMessage, mx + mw / 2, fy + 22, 13, {100, 255, 180, 255}, true);
-            } else {
-                textRenderer.drawTextWithShadow(renderer, "D-Pad / W/S: Navigate   |   (A) / Space: Select   |   SELECT / START: Resume   |   SELECT+START: Quit", mx + mw / 2, fy + 22, 12, {170, 185, 205, 255}, true);
+            // Classic NES freeze-frame pause: Game freezes in place with blinking PAUSE text
+            bool showPause = screenshotPause || ((SDL_GetTicks() / 350) % 2 == 0);
+            if (showPause) {
+                int px = GAME_X + GAME_W / 2; // 520 (center of highway viewport)
+                int py = INTERNAL_HEIGHT / 2 - 20; // 380
+                textRenderer.drawTextWithShadow(renderer, "PAUSE", px, py, 44, {255, 235, 59, 255}, true);
             }
         } else if (gameState != PLAYING) {
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);

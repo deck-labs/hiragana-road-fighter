@@ -46,9 +46,9 @@ chmod +x Hiragana_Road_Fighter-x86_64.AppImage
 | :---: | :---: |
 | ![Stage 1](screenshots/hud_stage1.png) | ![Stage 2](screenshots/hud_stage2.png) |
 
-| Stage 3: Coastal Beach | Display Auto-Detection & Pause Menu |
+| Stage 3: Coastal Beach | Authentic NES Freeze-Frame Pause |
 | :---: | :---: |
-| ![Stage 3](screenshots/hud_stage3.png) | ![Pause Menu](screenshots/hud_pause.png) |
+| ![Stage 3](screenshots/hud_stage3.png) | ![Pause Screen](screenshots/hud_pause.png) |
 
 ---
 
