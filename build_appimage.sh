@@ -97,5 +97,6 @@ fi
 OUT_FILE="/home/deck/Downloads/Hiragana_Road_Fighter-x86_64.AppImage"
 ARCH=x86_64 /tmp/appimagetool "$APPDIR" "$OUT_FILE"
 chmod +x "$OUT_FILE"
+cp -f "$OUT_FILE" "/home/deck/Downloads/Hiragana_Road_Fighter-v0.01-x86_64.AppImage"
 
-echo "=== AppImage created successfully: $OUT_FILE ==="
+echo "=== AppImage created successfully: $OUT_FILE and v0.01 ==="

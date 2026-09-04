@@ -50,6 +50,10 @@ const SDL_Color COLOR_ROAD           = {85, 85, 85, 255};
 const SDL_Color COLOR_LINE           = {255, 255, 255, 255};
 const SDL_Color COLOR_EDGE           = {204, 204, 204, 255};
 const SDL_Color COLOR_PLAYER         = {255, 51, 51, 255};
+const SDL_Color COLOR_NIGHT_SKY      = {8, 11, 20, 255};    // Midnight city sky backdrop
+const SDL_Color COLOR_NEON_CYAN      = {0, 235, 255, 255};  // Cyberpunk barrier cyan
+const SDL_Color COLOR_NEON_MAGENTA   = {255, 45, 150, 255}; // Cyberpunk barrier magenta
+const SDL_Color COLOR_NEON_AMBER     = {255, 215, 30, 255}; // High-tech highway amber
 
 struct KanaData {
     std::string kana;
@@ -75,8 +79,19 @@ const std::vector<KanaData> STAGE_2_KANA = {
     {"こ", "ko", {230, 126, 34, 255}}   // Orange
 };
 
+// Stage 3: Sa-column
+const std::vector<KanaData> STAGE_3_KANA = {
+    {"さ", "sa",  {51, 102, 255, 255}},  // Blue
+    {"し", "shi", {46, 204, 113, 255}},  // Green
+    {"す", "su",  {241, 196, 15, 255}},  // Yellow
+    {"せ", "se",  {155, 89, 182, 255}},  // Purple
+    {"そ", "so",  {230, 126, 34, 255}}   // Orange
+};
+
 inline const std::vector<KanaData>& getStageKana(int stage) {
-    return (stage >= 2) ? STAGE_2_KANA : STAGE_1_KANA;
+    if (stage == 1) return STAGE_1_KANA;
+    if (stage == 2) return STAGE_2_KANA;
+    return STAGE_3_KANA;
 }
 
 // Compute road boundaries for any world position within the gameplay viewport
@@ -90,6 +105,71 @@ inline void getRoadEdges(int stage, float worldY, float trackDist, float& outLef
         return;
     }
 
+    if (stage == 3) {
+        // Stage 3: High-Speed Winding Curves & Chicanes
+        constexpr float SEGMENT_LEN = 2400.0f;
+        int segIdx = static_cast<int>(worldY / SEGMENT_LEN);
+        float segPos = std::fmod(worldY, SEGMENT_LEN);
+        if (segPos < 0.0f) segPos += SEGMENT_LEN;
+
+        int pattern = std::abs(segIdx) % 4;
+        float curveShift = 0.0f;
+        float widthNarrow = 0.0f;
+
+        if (pattern == 0) {
+            // Sweeping long left turn
+            if (segPos >= 400.0f && segPos < 800.0f) {
+                float t = (segPos - 400.0f) / 400.0f;
+                curveShift = -65.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 800.0f && segPos < 1600.0f) {
+                curveShift = -65.0f;
+            } else if (segPos >= 1600.0f && segPos < 2000.0f) {
+                float t = (segPos - 1600.0f) / 400.0f;
+                curveShift = -65.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            }
+        } else if (pattern == 1) {
+            // Sweeping long right turn
+            if (segPos >= 400.0f && segPos < 800.0f) {
+                float t = (segPos - 400.0f) / 400.0f;
+                curveShift = 70.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 800.0f && segPos < 1600.0f) {
+                curveShift = 70.0f;
+            } else if (segPos >= 1600.0f && segPos < 2000.0f) {
+                float t = (segPos - 1600.0f) / 400.0f;
+                curveShift = 70.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            }
+        } else if (pattern == 2) {
+            // S-Chicane (rapid left then right)
+            if (segPos >= 300.0f && segPos < 800.0f) {
+                float t = (segPos - 300.0f) / 500.0f;
+                curveShift = -60.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 800.0f && segPos < 1300.0f) {
+                float t = (segPos - 800.0f) / 500.0f;
+                curveShift = -60.0f + 120.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 1300.0f && segPos < 1800.0f) {
+                float t = (segPos - 1300.0f) / 500.0f;
+                curveShift = 60.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            }
+            widthNarrow = 20.0f;
+        } else {
+            // Express Straightaway with elevated expressway narrows
+            if (segPos >= 500.0f && segPos < 900.0f) {
+                float t = (segPos - 500.0f) / 400.0f;
+                widthNarrow = 30.0f * (0.5f - 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            } else if (segPos >= 900.0f && segPos < 1700.0f) {
+                widthNarrow = 30.0f;
+            } else if (segPos >= 1700.0f && segPos < 2100.0f) {
+                float t = (segPos - 1700.0f) / 400.0f;
+                widthNarrow = 30.0f * (0.5f + 0.5f * std::cos(t * static_cast<float>(M_PI)));
+            }
+        }
+
+        outLeft = normalLeft + curveShift + widthNarrow;
+        outRight = normalRight + curveShift - widthNarrow;
+        return;
+    }
+
+    // Stage 2: Elevated Coastal Highway Bridge
     constexpr float SEGMENT_LEN = 1600.0f;
     int segIdx = static_cast<int>(worldY / SEGMENT_LEN);
     float segPos = std::fmod(worldY, SEGMENT_LEN);
@@ -920,6 +1000,81 @@ void drawTree(SDL_Renderer* renderer, int x, int y, int treeType = 0) {
     }
 }
 
+void drawBuilding(SDL_Renderer* renderer, TextRenderer& textRenderer, int x, int y, int w, int h, int seed, int frames) {
+    if (h <= 0 || w <= 0) return;
+
+    // 1. Skyscraper Facade Body
+    SDL_SetRenderDrawColor(renderer, 12, 16, 26, 255);
+    SDL_Rect bldg = {x, y, w, h};
+    SDL_RenderFillRect(renderer, &bldg);
+
+    // Architectural edge trim
+    SDL_SetRenderDrawColor(renderer, 32, 45, 66, 255);
+    SDL_RenderDrawRect(renderer, &bldg);
+
+    // 2. Grids of Lit Office Windows
+    std::mt19937 prng(static_cast<unsigned int>(seed * 997 + 13));
+    int cols = std::max(1, (w - 10) / 8);
+    int rows = std::max(1, (h - 18) / 10);
+
+    for (int r = 0; r < rows; ++r) {
+        int wy = y + 8 + r * 10;
+        for (int c = 0; c < cols; ++c) {
+            int wx = x + 5 + c * 8;
+            int roll = prng() % 100;
+            if (roll < 34) {
+                SDL_Color winCol;
+                int colType = prng() % 4;
+                if (colType == 0) winCol = {0, 225, 255, 240};       // Cyber Cyan
+                else if (colType == 1) winCol = {255, 215, 65, 240};  // Office Amber
+                else if (colType == 2) winCol = {230, 242, 255, 220}; // Cold White
+                else winCol = {255, 60, 180, 240};                    // Neon Magenta
+
+                SDL_SetRenderDrawColor(renderer, winCol.r, winCol.g, winCol.b, winCol.a);
+                SDL_Rect winR = {wx, wy, 4, 5};
+                SDL_RenderFillRect(renderer, &winR);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 20, 26, 38, 255);
+                SDL_Rect winR = {wx, wy, 4, 5};
+                SDL_RenderFillRect(renderer, &winR);
+            }
+        }
+    }
+
+    // 3. Rooftop Antenna Mast & Blinking Red Aviation Beacon
+    int antX = x + w / 2;
+    SDL_SetRenderDrawColor(renderer, 65, 78, 98, 255);
+    SDL_RenderDrawLine(renderer, antX, y - 10, antX, y);
+    SDL_RenderDrawLine(renderer, antX - 1, y - 10, antX - 1, y);
+
+    bool beaconOn = (((frames / 24) + seed) % 2 == 0);
+    if (beaconOn) {
+        SDL_SetRenderDrawColor(renderer, 255, 45, 45, 255);
+        SDL_Rect bec = {antX - 2, y - 13, 4, 4};
+        SDL_RenderFillRect(renderer, &bec);
+    }
+
+    // 4. Occasional High-Rise Neon Billboard
+    if ((seed % 3 == 0) && h >= 65 && w >= 36) {
+        int signH = 20;
+        int signW = w - 8;
+        int signX = x + 4;
+        int signY = y + h - 26;
+
+        SDL_SetRenderDrawColor(renderer, 8, 10, 16, 255);
+        SDL_Rect sBox = {signX, signY, signW, signH};
+        SDL_RenderFillRect(renderer, &sBox);
+
+        SDL_Color neonCol = (seed % 2 == 0) ? SDL_Color{0, 235, 255, 255} : SDL_Color{255, 45, 150, 255};
+        SDL_SetRenderDrawColor(renderer, neonCol.r, neonCol.g, neonCol.b, 255);
+        SDL_RenderDrawRect(renderer, &sBox);
+
+        static const std::vector<std::string> BILLBOARDS = {"東京", "高速", "NEON", "777", "KANA", "CYBER"};
+        std::string text = BILLBOARDS[seed % BILLBOARDS.size()];
+        textRenderer.drawText(renderer, text, signX + signW / 2, signY + signH / 2, 10, neonCol, true);
+    }
+}
+
 void drawFinishLine(SDL_Renderer* renderer, TextRenderer& textRenderer, int y) {
     constexpr int roadLeft = GAME_X + ROAD_MARGIN;
     constexpr int squareSize = 15;
@@ -974,6 +1129,7 @@ struct GameTextures {
     SDL_Texture* concreteTex = nullptr;
     SDL_Texture* carbonTex = nullptr;
     SDL_Texture* waterTex = nullptr;
+    SDL_Texture* nightAsphaltTex = nullptr;
 
     void init(SDL_Renderer* renderer) {
         // 1. Asphalt Road Surface Texture (256 x 256)
@@ -1125,6 +1281,42 @@ struct GameTextures {
             SDL_SetTextureBlendMode(waterTex, SDL_BLENDMODE_BLEND);
             SDL_FreeSurface(surf);
         }
+
+        // 6. Midnight Wet Asphalt Texture (256 x 256)
+        {
+            constexpr int W = 256, H = 256;
+            std::vector<Uint32> pixels(W * H);
+            std::mt19937 prng(303);
+            for (int y = 0; y < H; ++y) {
+                for (int x = 0; x < W; ++x) {
+                    int base = 34 + (prng() % 9) - 4;
+                    int r = base - 2;
+                    int g = base;
+                    int b = base + 4;
+
+                    int speckle = prng() % 100;
+                    if (speckle < 6) {
+                        int shine = 62 + (prng() % 28);
+                        r = shine - 4; g = shine + 2; b = shine + 12;
+                    } else if (speckle > 93) {
+                        int tar = 22 + (prng() % 6);
+                        r = tar; g = tar + 1; b = tar + 5;
+                    }
+
+                    float wave = std::sin(x * 0.10f) * 3.0f + std::cos(y * 0.08f) * 2.5f;
+                    r = std::clamp(r + static_cast<int>(wave), 15, 180);
+                    g = std::clamp(g + static_cast<int>(wave), 15, 190);
+                    b = std::clamp(b + static_cast<int>(wave), 20, 210);
+
+                    pixels[y * W + x] = (static_cast<Uint32>(r) << 24) |
+                                        (static_cast<Uint32>(g) << 16) |
+                                        (static_cast<Uint32>(b) << 8)  | 255;
+                }
+            }
+            SDL_Surface* surf = SDL_CreateRGBSurfaceFrom(pixels.data(), W, H, 32, W * 4, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+            nightAsphaltTex = SDL_CreateTextureFromSurface(renderer, surf);
+            SDL_FreeSurface(surf);
+        }
     }
 
     void destroy() {
@@ -1133,6 +1325,7 @@ struct GameTextures {
         if (concreteTex) { SDL_DestroyTexture(concreteTex); concreteTex = nullptr; }
         if (carbonTex) { SDL_DestroyTexture(carbonTex); carbonTex = nullptr; }
         if (waterTex) { SDL_DestroyTexture(waterTex); waterTex = nullptr; }
+        if (nightAsphaltTex) { SDL_DestroyTexture(nightAsphaltTex); nightAsphaltTex = nullptr; }
     }
 
     static void drawTiled(SDL_Renderer* renderer, SDL_Texture* tex, int dstX, int dstY, int dstW, int dstH, int scrollX, int scrollY, int tileW, int tileH) {
@@ -1462,6 +1655,7 @@ int main(int argc, char* argv[]) {
                         gameState = PLAYING;
                     } else if (gameState == CLEAR) {
                         if (currentStage == 1) startStage(2, true);
+                        else if (currentStage == 2) startStage(3, true);
                         else startStage(1, false);
                     } else if (gameState == OVER) {
                         startStage(currentStage, false);
@@ -1493,6 +1687,8 @@ int main(int argc, char* argv[]) {
                         if (gameState == CLEAR) {
                             if (currentStage == 1) {
                                 startStage(2, true); // Advance to Stage 2 with bonus fuel
+                            } else if (currentStage == 2) {
+                                startStage(3, true); // Advance to Stage 3 with bonus fuel
                             } else {
                                 startStage(1, false); // All stages clear, restart
                             }
@@ -1513,6 +1709,7 @@ int main(int argc, char* argv[]) {
                 } else if (gameState != PLAYING) {
                     if (gameState == CLEAR) {
                         if (currentStage == 1) startStage(2, true);
+                        else if (currentStage == 2) startStage(3, true);
                         else startStage(1, false);
                     } else {
                         startStage(currentStage, false);
@@ -1562,6 +1759,8 @@ int main(int argc, char* argv[]) {
                         if (gameState == CLEAR) {
                             if (currentStage == 1) {
                                 startStage(2, true); // Advance to Stage 2 with bonus fuel
+                            } else if (currentStage == 2) {
+                                startStage(3, true); // Advance to Stage 3 with bonus fuel
                             } else {
                                 startStage(1, false); // All stages clear, restart
                             }
@@ -1986,7 +2185,7 @@ int main(int argc, char* argv[]) {
                 SDL_Rect d3 = {GAME_X + ROAD_MARGIN + laneW * 3 - 1, y, 3, 28};
                 SDL_RenderFillRect(renderer, &d3);
             }
-        } else {
+        } else if (currentStage == 2) {
             // Stage 2: Elevated Coastal Highway Bridge over Dynamic Ocean Waters
             constexpr int SLICE_H = 4;
             float waveTime = frames * 0.04f;
@@ -2167,6 +2366,155 @@ int main(int argc, char* argv[]) {
                 SDL_RenderFillRect(renderer, &curbEdgeL);
                 SDL_RenderFillRect(renderer, &curbEdgeR);
             }
+        } else {
+            // Stage 3: Neon Cyber City Expressway (Tokyo Shuto / Wangan Midnight Metropolis)
+            constexpr int SLICE_H = 4;
+
+            // 1. Midnight Sky & Cyber City Backdrop
+            SDL_SetRenderDrawColor(renderer, COLOR_NIGHT_SKY.r, COLOR_NIGHT_SKY.g, COLOR_NIGHT_SKY.b, 255);
+            SDL_Rect nightBg = {GAME_X, 0, GAME_W, INTERNAL_HEIGHT};
+            SDL_RenderFillRect(renderer, &nightBg);
+
+            // 2. Roadside Skyscraper Facades with Glowing Windows & Neon Billboards
+            // Left Verge Skyscrapers (x: GAME_X, width ~68)
+            int firstBldgL = static_cast<int>((roadOffset - 250) / 160);
+            int lastBldgL = static_cast<int>((roadOffset + INTERNAL_HEIGHT + 250) / 160);
+            for (int b = firstBldgL; b <= lastBldgL; ++b) {
+                float bWorldY = b * 160.0f;
+                int sy = static_cast<int>(INTERNAL_HEIGHT - (bWorldY - roadOffset));
+                int bW = 66 + (std::abs(b * 13) % 3) * 6;
+                int bH = 140 + (std::abs(b * 17) % 4) * 12;
+                int bx = GAME_X + 2;
+                drawBuilding(renderer, textRenderer, bx, sy - bH, bW, bH, std::abs(b * 37 + 11), frames);
+            }
+
+            // Right Verge Skyscrapers (x: GAME_X + GAME_W - bW, width ~68)
+            int firstBldgR = static_cast<int>((roadOffset - 250) / 175);
+            int lastBldgR = static_cast<int>((roadOffset + INTERNAL_HEIGHT + 250) / 175);
+            for (int b = firstBldgR; b <= lastBldgR; ++b) {
+                float bWorldY = b * 175.0f;
+                int sy = static_cast<int>(INTERNAL_HEIGHT - (bWorldY - roadOffset));
+                int bW = 66 + (std::abs(b * 19) % 3) * 6;
+                int bH = 145 + (std::abs(b * 23) % 4) * 12;
+                int bx = GAME_X + GAME_W - bW - 2;
+                drawBuilding(renderer, textRenderer, bx, sy - bH, bW, bH, std::abs(b * 43 + 29), frames);
+            }
+
+            // 3. Slice-by-Slice Road Rendering with Curves & Neon Barriers
+            for (int y = 0; y < INTERNAL_HEIGHT; y += SLICE_H) {
+                float worldY = roadOffset + (INTERNAL_HEIGHT - y);
+                float rLeft = 0.0f, rRight = 0.0f;
+                getRoadEdges(3, worldY, trackDistance, rLeft, rRight);
+
+                int iLeft = static_cast<int>(rLeft);
+                int iRight = static_cast<int>(rRight);
+                int rWidth = iRight - iLeft;
+
+                // Elevated Expressway Concrete Base / Catwalk Shoulders
+                SDL_SetRenderDrawColor(renderer, 24, 28, 38, 255);
+                SDL_Rect shL = {iLeft - 18, y, 18, SLICE_H};
+                SDL_Rect shR = {iRight, y, 18, SLICE_H};
+                SDL_RenderFillRect(renderer, &shL);
+                SDL_RenderFillRect(renderer, &shR);
+
+                // Catwalk shadow expansion joint
+                if ((static_cast<int>(worldY) % 40) < 2) {
+                    SDL_SetRenderDrawColor(renderer, 12, 15, 22, 255);
+                    SDL_RenderFillRect(renderer, &shL);
+                    SDL_RenderFillRect(renderer, &shR);
+                }
+
+                // Midnight Wet Asphalt Road Surface
+                GameTextures::drawTiled(renderer, textures.nightAsphaltTex, iLeft, y, rWidth, SLICE_H, 0, static_cast<int>(roadOffset), 256, 256);
+
+                // Multi-Lane Markings on Neon Expressway
+                float laneW = static_cast<float>(rWidth) / 4.0f;
+                if (((y + static_cast<int>(roadOffset)) % 50) < 26) {
+                    // Lane 1/2 Divider (Electric Neon Cyan dash)
+                    SDL_SetRenderDrawColor(renderer, 0, 220, 255, 240);
+                    int x1 = static_cast<int>(rLeft + laneW);
+                    SDL_Rect d1 = {x1 - 1, y, 2, SLICE_H};
+                    SDL_RenderFillRect(renderer, &d1);
+
+                    // Center Expressway Divider (Double Neon Amber strip)
+                    SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);
+                    int x2 = static_cast<int>(rLeft + laneW * 2.0f);
+                    SDL_Rect d2a = {x2 - 2, y, 2, SLICE_H};
+                    SDL_Rect d2b = {x2 + 1, y, 2, SLICE_H};
+                    SDL_RenderFillRect(renderer, &d2a);
+                    SDL_RenderFillRect(renderer, &d2b);
+
+                    // Lane 3/4 Divider (Electric Neon Cyan dash)
+                    SDL_SetRenderDrawColor(renderer, 0, 220, 255, 240);
+                    int x3 = static_cast<int>(rLeft + laneW * 3.0f);
+                    SDL_Rect d3 = {x3 - 1, y, 2, SLICE_H};
+                    SDL_RenderFillRect(renderer, &d3);
+                }
+
+                // Glowing Cyberpunk Safety Barriers & Neon Edge Rails
+                // Left Barrier (Cyber Neon Cyan)
+                SDL_SetRenderDrawColor(renderer, 18, 30, 48, 255);
+                SDL_Rect curbL = {iLeft - 8, y, 8, SLICE_H};
+                SDL_RenderFillRect(renderer, &curbL);
+
+                SDL_SetRenderDrawColor(renderer, 0, 235, 255, 255);
+                SDL_Rect railL = {iLeft - 8, y, 2, SLICE_H};
+                SDL_RenderFillRect(renderer, &railL);
+
+                // Right Barrier (Cyber Neon Magenta)
+                SDL_SetRenderDrawColor(renderer, 48, 18, 38, 255);
+                SDL_Rect curbR = {iRight, y, 8, SLICE_H};
+                SDL_RenderFillRect(renderer, &curbR);
+
+                SDL_SetRenderDrawColor(renderer, 255, 45, 150, 255);
+                SDL_Rect railR = {iRight + 6, y, 2, SLICE_H};
+                SDL_RenderFillRect(renderer, &railR);
+
+                // Embedded Roadside Cats-Eye Reflectors (glowing amber every 20px)
+                if ((static_cast<int>(worldY) % 24) < 3) {
+                    SDL_SetRenderDrawColor(renderer, 255, 230, 80, 255);
+                    SDL_Rect refL = {iLeft - 2, y + 1, 2, 2};
+                    SDL_Rect refR = {iRight, y + 1, 2, 2};
+                    SDL_RenderFillRect(renderer, &refL);
+                    SDL_RenderFillRect(renderer, &refR);
+                }
+            }
+
+            // 4. Overhead Cantilever Highway Streetlights
+            int firstLight = static_cast<int>((roadOffset - 120) / 260);
+            int lastLight = static_cast<int>((roadOffset + INTERNAL_HEIGHT + 120) / 260);
+            for (int l = firstLight; l <= lastLight; ++l) {
+                float lightWorldY = l * 260.0f;
+                int sy = static_cast<int>(INTERNAL_HEIGHT - (lightWorldY - roadOffset));
+                if (sy < -30 || sy > INTERNAL_HEIGHT + 30) continue;
+
+                float rLeft, rRight;
+                getRoadEdges(3, lightWorldY, trackDistance, rLeft, rRight);
+
+                bool isLeft = (l % 2 == 0);
+                int poleX = isLeft ? static_cast<int>(rLeft) - 8 : static_cast<int>(rRight) + 8;
+                int lampX = isLeft ? static_cast<int>(rLeft) + 26 : static_cast<int>(rRight) - 26;
+
+                // Steel pole mount
+                SDL_SetRenderDrawColor(renderer, 75, 88, 110, 255);
+                SDL_Rect pole = {poleX - 2, sy - 8, 4, 16};
+                SDL_RenderFillRect(renderer, &pole);
+
+                // Cantilever arm extending toward road
+                SDL_SetRenderDrawColor(renderer, 100, 115, 140, 255);
+                SDL_RenderDrawLine(renderer, poleX, sy, lampX, sy);
+                SDL_RenderDrawLine(renderer, poleX, sy - 1, lampX, sy - 1);
+
+                // Luminaire Lamp Head
+                SDL_SetRenderDrawColor(renderer, 255, 235, 120, 255);
+                SDL_Rect lHead = {lampX - 4, sy - 3, 8, 6};
+                SDL_RenderFillRect(renderer, &lHead);
+
+                // Soft ambient illumination pool onto the asphalt
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                drawCircle(renderer, lampX, sy + 14, 34, {255, 230, 120, 24});
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+            }
         }
 
         // Draw Tire Skid Marks on road
@@ -2266,7 +2614,7 @@ int main(int argc, char* argv[]) {
         SDL_RenderDrawLine(renderer, lhX, lhY + 1, lhX + lhW - 1, lhY + 1);
 
         textRenderer.drawTextWithShadow(renderer, "STAGE 0" + std::to_string(currentStage), lhX + lhW / 2, lhY + 22, 20, {255, 230, 60, 255}, true);
-        textRenderer.drawTextWithShadow(renderer, (currentStage == 1 ? "FOREST HIGHWAY" : "COASTAL BRIDGE"), lhX + lhW / 2, lhY + 46, 13, {100, 220, 255, 255}, true);
+        textRenderer.drawTextWithShadow(renderer, (currentStage == 1 ? "FOREST HIGHWAY" : (currentStage == 2 ? "COASTAL BRIDGE" : "NEON EXPRESSWAY")), lhX + lhW / 2, lhY + 46, 13, {100, 220, 255, 255}, true);
         textRenderer.drawText(renderer, "GPS TRACK TELEMETRY", lhX + lhW / 2, lhY + 63, 10, {140, 158, 180, 255}, true);
 
         // 3. Vertical GPS Track Corridor (y: 104 to 684)
@@ -2513,7 +2861,7 @@ int main(int argc, char* argv[]) {
         SDL_RenderFillRect(renderer, &stPill);
         SDL_SetRenderDrawColor(renderer, 0, 180, 240, 255);
         SDL_RenderDrawRect(renderer, &stPill);
-        textRenderer.drawText(renderer, "STAGE " + std::to_string(currentStage) + " / 2", rCardX + rCardW - 75, 227, 11, {0, 200, 255, 255}, true);
+        textRenderer.drawText(renderer, "STAGE " + std::to_string(currentStage) + " / 3", rCardX + rCardW - 75, 227, 11, {0, 200, 255, 255}, true);
 
         std::string distStr = std::to_string(distMeters) + " m to finish";
         textRenderer.drawTextRightWithShadow(renderer, distStr, rCardX + rCardW - 16, 252, 14, {180, 215, 245, 255});
@@ -2866,6 +3214,11 @@ int main(int argc, char* argv[]) {
                     std::string finalScoreStr = "TOTAL SCORE: " + std::to_string(static_cast<int>(score));
                     textRenderer.drawTextWithShadow(renderer, finalScoreStr, INTERNAL_WIDTH / 2, dy + 150, 24, {255, 255, 255, 255}, true);
                     textRenderer.drawTextWithShadow(renderer, "Press SPACE or (A) for Stage 2", INTERNAL_WIDTH / 2, dy + 225, 20, {100, 220, 255, 255}, true);
+                } else if (currentStage == 2) {
+                    textRenderer.drawTextWithShadow(renderer, "STAGE 2 CLEAR!", INTERNAL_WIDTH / 2, dy + 70, 38, {255, 235, 59, 255}, true);
+                    std::string finalScoreStr = "TOTAL SCORE: " + std::to_string(static_cast<int>(score));
+                    textRenderer.drawTextWithShadow(renderer, finalScoreStr, INTERNAL_WIDTH / 2, dy + 150, 24, {255, 255, 255, 255}, true);
+                    textRenderer.drawTextWithShadow(renderer, "Press SPACE or (A) for Stage 3", INTERNAL_WIDTH / 2, dy + 225, 20, {100, 220, 255, 255}, true);
                 } else {
                     textRenderer.drawTextWithShadow(renderer, "ALL STAGES CLEAR!", INTERNAL_WIDTH / 2, dy + 60, 36, {255, 235, 59, 255}, true);
                     textRenderer.drawTextWithShadow(renderer, "★ CONGRATULATIONS ★", INTERNAL_WIDTH / 2, dy + 115, 24, {255, 215, 0, 255}, true);
