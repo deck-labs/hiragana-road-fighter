@@ -9,6 +9,38 @@ A retro Japanese Hiragana learning arcade racer built from scratch in C++ and SD
 
 ---
 
+## ⚡ Direct Download Shortcuts (AppImage Only)
+
+You do **not** need to clone this repository, install dependencies, or compile source code. You can download and launch the standalone AppImage directly using any of these shortcuts:
+
+### 🚀 Option 1: One-Click Browser Download
+
+[![Direct Download AppImage](https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.01%20(17%20MB)-00c853?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/deck-labs/hiragana-road-fighter/releases/download/v0.01/Hiragana_Road_Fighter-v0.01-x86_64.AppImage)
+
+| Download Target | Direct Shortcut Link | Description |
+| :--- | :--- | :--- |
+| **Release v0.01 AppImage** | [📥 **Download v0.01 AppImage**](https://github.com/deck-labs/hiragana-road-fighter/releases/download/v0.01/Hiragana_Road_Fighter-v0.01-x86_64.AppImage) | Direct standalone Linux binary (17 MB) |
+| **Permanent Latest Link** | [📦 **Download Latest AppImage**](https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-latest-x86_64.AppImage) | Always redirects to newest release |
+| **Repository File Link** | [📄 **Download from Repository**](https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-v0.01-x86_64.AppImage) | Raw direct download from Git tree |
+
+### 💻 Option 2: One-Line Terminal Shortcut (Auto Download & Run)
+
+Paste this single command into your terminal (Steam Deck Konsole, Arch, Ubuntu, Fedora) to download and launch immediately:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/download.sh | bash
+```
+
+Or download manually via `curl` / `wget`:
+
+```bash
+curl -LO https://github.com/deck-labs/hiragana-road-fighter/releases/download/v0.01/Hiragana_Road_Fighter-v0.01-x86_64.AppImage
+chmod +x Hiragana_Road_Fighter-v0.01-x86_64.AppImage
+./Hiragana_Road_Fighter-v0.01-x86_64.AppImage
+```
+
+---
+
 ## Screenshots
 
 | Stage 1: Forest Highway | Stage 2: Coastal Bridge |
