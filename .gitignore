@@ -1,0 +1,9 @@
+# Compiled binaries & objects
+cpp/road_fighter_cpp
+*.o
+
+# Temporary files & screenshots
+*.bmp
+/tmp/
+.DS_Store
+Hiragana_Road_Fighter-x86_64.AppImage
