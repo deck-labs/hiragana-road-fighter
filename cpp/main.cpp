@@ -50,10 +50,16 @@ const SDL_Color COLOR_ROAD           = {85, 85, 85, 255};
 const SDL_Color COLOR_LINE           = {255, 255, 255, 255};
 const SDL_Color COLOR_EDGE           = {204, 204, 204, 255};
 const SDL_Color COLOR_PLAYER         = {255, 51, 51, 255};
-const SDL_Color COLOR_NIGHT_SKY      = {8, 11, 20, 255};    // Midnight city sky backdrop
-const SDL_Color COLOR_NEON_CYAN      = {0, 235, 255, 255};  // Cyberpunk barrier cyan
-const SDL_Color COLOR_NEON_MAGENTA   = {255, 45, 150, 255}; // Cyberpunk barrier magenta
-const SDL_Color COLOR_NEON_AMBER     = {255, 215, 30, 255}; // High-tech highway amber
+const SDL_Color COLOR_SAND           = {238, 208, 148, 255}; // Sunny golden beach sand
+const SDL_Color COLOR_SAND_DUNE      = {220, 188, 128, 255}; // Sand dune ripple shadow
+const SDL_Color COLOR_SAND_WET       = {196, 164, 112, 255}; // Wet sand along surf line
+const SDL_Color COLOR_TROPICAL_DEEP  = {14, 86, 154, 255};   // Deep tropical azure sea
+const SDL_Color COLOR_TROPICAL_MID   = {26, 146, 196, 255};  // Tropical turquoise sea
+const SDL_Color COLOR_TROPICAL_SURF  = {60, 200, 225, 255};  // Shallow turquoise surf
+const SDL_Color COLOR_TROPICAL_FOAM  = {240, 250, 255, 255}; // Foaming white wave crests
+const SDL_Color COLOR_PALM_TRUNK     = {118, 76, 42, 255};   // Textured palm tree trunk
+const SDL_Color COLOR_PALM_LEAF_1    = {26, 128, 38, 255};   // Vibrant tropical palm green
+const SDL_Color COLOR_PALM_LEAF_2    = {45, 168, 52, 255};   // Bright sunlit palm frond
 
 struct KanaData {
     std::string kana;
@@ -1000,78 +1006,150 @@ void drawTree(SDL_Renderer* renderer, int x, int y, int treeType = 0) {
     }
 }
 
-void drawBuilding(SDL_Renderer* renderer, TextRenderer& textRenderer, int x, int y, int w, int h, int seed, int frames) {
-    if (h <= 0 || w <= 0) return;
+void drawPalmTree(SDL_Renderer* renderer, int x, int y, int frames, int seed) {
+    // 1. Soft Circular Ground Shadow on Sand
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    drawCircle(renderer, x + 4, y + 16, 16, {150, 120, 80, 75});
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 
-    // 1. Skyscraper Facade Body
-    SDL_SetRenderDrawColor(renderer, 12, 16, 26, 255);
-    SDL_Rect bldg = {x, y, w, h};
-    SDL_RenderFillRect(renderer, &bldg);
+    // 2. Curved Coconut Palm Trunk with segmented bark rings
+    float lean = (seed % 2 == 0 ? 1.0f : -1.0f) * 12.0f;
+    int trunkSteps = 10;
+    int topX = x;
+    int topY = y - 36;
 
-    // Architectural edge trim
-    SDL_SetRenderDrawColor(renderer, 32, 45, 66, 255);
-    SDL_RenderDrawRect(renderer, &bldg);
+    for (int s = 0; s < trunkSteps; ++s) {
+        float t0 = static_cast<float>(s) / trunkSteps;
+        float t1 = static_cast<float>(s + 1) / trunkSteps;
+        int sx0 = x + static_cast<int>(std::sin(t0 * 1.57f) * lean);
+        int sy0 = y + 16 - static_cast<int>(t0 * 52.0f);
+        int sx1 = x + static_cast<int>(std::sin(t1 * 1.57f) * lean);
+        int sy1 = y + 16 - static_cast<int>(t1 * 52.0f);
+        int w = 7 - (s * 3) / trunkSteps;
 
-    // 2. Grids of Lit Office Windows
-    std::mt19937 prng(static_cast<unsigned int>(seed * 997 + 13));
-    int cols = std::max(1, (w - 10) / 8);
-    int rows = std::max(1, (h - 18) / 10);
+        SDL_SetRenderDrawColor(renderer, COLOR_PALM_TRUNK.r, COLOR_PALM_TRUNK.g, COLOR_PALM_TRUNK.b, 255);
+        SDL_Rect seg = {sx0 - w / 2, sy1, w, std::max(2, sy0 - sy1)};
+        SDL_RenderFillRect(renderer, &seg);
 
-    for (int r = 0; r < rows; ++r) {
-        int wy = y + 8 + r * 10;
-        for (int c = 0; c < cols; ++c) {
-            int wx = x + 5 + c * 8;
-            int roll = prng() % 100;
-            if (roll < 34) {
-                SDL_Color winCol;
-                int colType = prng() % 4;
-                if (colType == 0) winCol = {0, 225, 255, 240};       // Cyber Cyan
-                else if (colType == 1) winCol = {255, 215, 65, 240};  // Office Amber
-                else if (colType == 2) winCol = {230, 242, 255, 220}; // Cold White
-                else winCol = {255, 60, 180, 240};                    // Neon Magenta
-
-                SDL_SetRenderDrawColor(renderer, winCol.r, winCol.g, winCol.b, winCol.a);
-                SDL_Rect winR = {wx, wy, 4, 5};
-                SDL_RenderFillRect(renderer, &winR);
-            } else {
-                SDL_SetRenderDrawColor(renderer, 20, 26, 38, 255);
-                SDL_Rect winR = {wx, wy, 4, 5};
-                SDL_RenderFillRect(renderer, &winR);
-            }
+        if (s % 2 == 0) {
+            SDL_SetRenderDrawColor(renderer, 85, 52, 28, 255);
+            SDL_RenderDrawLine(renderer, sx0 - w / 2, sy1, sx0 + w / 2, sy1);
+        }
+        if (s == trunkSteps - 1) {
+            topX = sx1;
+            topY = sy1;
         }
     }
 
-    // 3. Rooftop Antenna Mast & Blinking Red Aviation Beacon
-    int antX = x + w / 2;
-    SDL_SetRenderDrawColor(renderer, 65, 78, 98, 255);
-    SDL_RenderDrawLine(renderer, antX, y - 10, antX, y);
-    SDL_RenderDrawLine(renderer, antX - 1, y - 10, antX - 1, y);
+    // 3. Cluster of Coconuts under the crown
+    drawCircle(renderer, topX - 3, topY + 2, 3, {95, 58, 25, 255});
+    drawCircle(renderer, topX + 2, topY + 1, 3, {82, 48, 20, 255});
+    drawCircle(renderer, topX, topY + 4, 3, {110, 68, 30, 255});
 
-    bool beaconOn = (((frames / 24) + seed) % 2 == 0);
-    if (beaconOn) {
-        SDL_SetRenderDrawColor(renderer, 255, 45, 45, 255);
-        SDL_Rect bec = {antX - 2, y - 13, 4, 4};
-        SDL_RenderFillRect(renderer, &bec);
+    // 4. Layered Tropical Palm Fronds (Arching and swaying in ocean breeze)
+    float sway = std::sin(frames * 0.05f + seed) * 3.5f;
+
+    struct Frond { float angle; int length; int curve; };
+    const Frond FRONDS[6] = {
+        {-2.5f, 26, 8},  // Far Left
+        {-1.8f, 30, 10}, // Up Left
+        {-0.9f, 28, 9},  // Up Right
+        {-0.3f, 26, 8},  // Far Right
+        {-2.9f, 22, 6},  // Low Left
+        {0.1f, 22, 6}    // Low Right
+    };
+
+    for (int f = 0; f < 6; ++f) {
+        float baseAng = FRONDS[f].angle;
+        int len = FRONDS[f].length;
+        SDL_Color fCol = (f % 2 == 0) ? COLOR_PALM_LEAF_1 : COLOR_PALM_LEAF_2;
+
+        int prevFx = topX;
+        int prevFy = topY;
+        for (int step = 1; step <= 5; ++step) {
+            float frac = static_cast<float>(step) / 5.0f;
+            float curAng = baseAng + (frac * frac * 0.35f) + (sway * 0.04f * frac);
+            int fx = topX + static_cast<int>(std::cos(curAng) * len * frac);
+            int fy = topY + static_cast<int>(std::sin(curAng) * len * frac + (frac * frac * FRONDS[f].curve));
+
+            SDL_SetRenderDrawColor(renderer, fCol.r, fCol.g, fCol.b, 255);
+            SDL_RenderDrawLine(renderer, prevFx, prevFy, fx, fy);
+            SDL_RenderDrawLine(renderer, prevFx + 1, prevFy, fx + 1, fy);
+            SDL_RenderDrawLine(renderer, prevFx, prevFy + 1, fx, fy + 1);
+
+            if (step >= 2) {
+                SDL_SetRenderDrawColor(renderer, COLOR_PALM_LEAF_2.r, COLOR_PALM_LEAF_2.g, COLOR_PALM_LEAF_2.b, 255);
+                SDL_RenderDrawLine(renderer, fx, fy, fx - 2, fy + 3);
+                SDL_RenderDrawLine(renderer, fx, fy, fx + 2, fy + 3);
+            }
+            prevFx = fx;
+            prevFy = fy;
+        }
     }
+}
 
-    // 4. Occasional High-Rise Neon Billboard
-    if ((seed % 3 == 0) && h >= 65 && w >= 36) {
-        int signH = 20;
-        int signW = w - 8;
-        int signX = x + 4;
-        int signY = y + h - 26;
+void drawBeachProp(SDL_Renderer* renderer, int x, int y, int propType) {
+    if (propType == 0) {
+        // Striped Beach Parasol / Umbrella
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        drawCircle(renderer, x + 6, y + 10, 12, {140, 110, 70, 70});
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 
-        SDL_SetRenderDrawColor(renderer, 8, 10, 16, 255);
-        SDL_Rect sBox = {signX, signY, signW, signH};
-        SDL_RenderFillRect(renderer, &sBox);
+        // Mast
+        SDL_SetRenderDrawColor(renderer, 220, 225, 230, 255);
+        SDL_RenderDrawLine(renderer, x + 4, y + 8, x - 2, y - 8);
+        SDL_RenderDrawLine(renderer, x + 5, y + 8, x - 1, y - 8);
 
-        SDL_Color neonCol = (seed % 2 == 0) ? SDL_Color{0, 235, 255, 255} : SDL_Color{255, 45, 150, 255};
-        SDL_SetRenderDrawColor(renderer, neonCol.r, neonCol.g, neonCol.b, 255);
-        SDL_RenderDrawRect(renderer, &sBox);
+        // Striped Canopy
+        int cx = x - 2;
+        int cy = y - 10;
+        int uRad = 16;
+        for (int dy = -6; dy <= 6; ++dy) {
+            int span = static_cast<int>(std::sqrt(std::max(0, uRad * uRad - (dy * 3) * (dy * 3))));
+            for (int dx = -span; dx <= span; ++dx) {
+                bool stripe = (((dx + dy + 32) / 5) % 2 == 0);
+                if (stripe) SDL_SetRenderDrawColor(renderer, 235, 45, 45, 255); // Vibrant Red
+                else SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);       // Pure White
+                SDL_RenderDrawPoint(renderer, cx + dx, cy + dy);
+            }
+        }
+        SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);
+        SDL_Rect finial = {cx - 1, cy - 8, 3, 3};
+        SDL_RenderFillRect(renderer, &finial);
+    } else if (propType == 1) {
+        // Surfboard planted in the sand
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        drawCircle(renderer, x + 4, y + 8, 8, {140, 110, 70, 70});
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
 
-        static const std::vector<std::string> BILLBOARDS = {"東京", "高速", "NEON", "777", "KANA", "CYBER"};
-        std::string text = BILLBOARDS[seed % BILLBOARDS.size()];
-        textRenderer.drawText(renderer, text, signX + signW / 2, signY + signH / 2, 10, neonCol, true);
+        SDL_SetRenderDrawColor(renderer, 0, 195, 235, 255); // Cyan board
+        SDL_Rect b1 = {x - 2, y - 16, 6, 22};
+        SDL_RenderFillRect(renderer, &b1);
+
+        SDL_SetRenderDrawColor(renderer, 255, 220, 30, 255);
+        SDL_Rect bStripe = {x, y - 16, 2, 22};
+        SDL_RenderFillRect(renderer, &bStripe);
+
+        SDL_SetRenderDrawColor(renderer, 0, 195, 235, 255);
+        SDL_RenderDrawPoint(renderer, x - 1, y - 17);
+        SDL_RenderDrawPoint(renderer, x + 1, y - 17);
+        SDL_RenderDrawPoint(renderer, x, y - 18);
+    } else {
+        // Beach Towel laid on sand
+        SDL_SetRenderDrawColor(renderer, 255, 140, 30, 255); // Orange towel
+        SDL_Rect towel = {x - 8, y - 4, 16, 24};
+        SDL_RenderFillRect(renderer, &towel);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderDrawLine(renderer, x - 8, y + 2, x + 7, y + 2);
+        SDL_RenderDrawLine(renderer, x - 8, y + 14, x + 7, y + 14);
+
+        // Mini cooler box
+        SDL_SetRenderDrawColor(renderer, 45, 120, 225, 255);
+        SDL_Rect cooler = {x + 10, y + 2, 8, 8};
+        SDL_RenderFillRect(renderer, &cooler);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_Rect lid = {x + 9, y + 1, 10, 2};
+        SDL_RenderFillRect(renderer, &lid);
     }
 }
 
@@ -1129,7 +1207,7 @@ struct GameTextures {
     SDL_Texture* concreteTex = nullptr;
     SDL_Texture* carbonTex = nullptr;
     SDL_Texture* waterTex = nullptr;
-    SDL_Texture* nightAsphaltTex = nullptr;
+    SDL_Texture* sandTex = nullptr;
 
     void init(SDL_Renderer* renderer) {
         // 1. Asphalt Road Surface Texture (256 x 256)
@@ -1282,31 +1360,29 @@ struct GameTextures {
             SDL_FreeSurface(surf);
         }
 
-        // 6. Midnight Wet Asphalt Texture (256 x 256)
+        // 6. Warm Golden Beach Sand Texture (256 x 256)
         {
             constexpr int W = 256, H = 256;
             std::vector<Uint32> pixels(W * H);
-            std::mt19937 prng(303);
+            std::mt19937 prng(404);
             for (int y = 0; y < H; ++y) {
                 for (int x = 0; x < W; ++x) {
-                    int base = 34 + (prng() % 9) - 4;
-                    int r = base - 2;
-                    int g = base;
-                    int b = base + 4;
+                    int base = 212 + (prng() % 15) - 7;
+                    int r = base + 22;
+                    int g = base - 6;
+                    int b = base - 68;
+
+                    float ripple = std::sin(x * 0.05f + y * 0.03f) * 6.0f + std::cos(y * 0.06f) * 4.0f;
+                    r = std::clamp(r + static_cast<int>(ripple), 180, 255);
+                    g = std::clamp(g + static_cast<int>(ripple * 0.85f), 150, 240);
+                    b = std::clamp(b + static_cast<int>(ripple * 0.6f), 100, 200);
 
                     int speckle = prng() % 100;
-                    if (speckle < 6) {
-                        int shine = 62 + (prng() % 28);
-                        r = shine - 4; g = shine + 2; b = shine + 12;
-                    } else if (speckle > 93) {
-                        int tar = 22 + (prng() % 6);
-                        r = tar; g = tar + 1; b = tar + 5;
+                    if (speckle < 4) {
+                        r = 255; g = 250; b = 230;
+                    } else if (speckle > 95) {
+                        r -= 28; g -= 26; b -= 20;
                     }
-
-                    float wave = std::sin(x * 0.10f) * 3.0f + std::cos(y * 0.08f) * 2.5f;
-                    r = std::clamp(r + static_cast<int>(wave), 15, 180);
-                    g = std::clamp(g + static_cast<int>(wave), 15, 190);
-                    b = std::clamp(b + static_cast<int>(wave), 20, 210);
 
                     pixels[y * W + x] = (static_cast<Uint32>(r) << 24) |
                                         (static_cast<Uint32>(g) << 16) |
@@ -1314,7 +1390,7 @@ struct GameTextures {
                 }
             }
             SDL_Surface* surf = SDL_CreateRGBSurfaceFrom(pixels.data(), W, H, 32, W * 4, 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-            nightAsphaltTex = SDL_CreateTextureFromSurface(renderer, surf);
+            sandTex = SDL_CreateTextureFromSurface(renderer, surf);
             SDL_FreeSurface(surf);
         }
     }
@@ -1325,7 +1401,7 @@ struct GameTextures {
         if (concreteTex) { SDL_DestroyTexture(concreteTex); concreteTex = nullptr; }
         if (carbonTex) { SDL_DestroyTexture(carbonTex); carbonTex = nullptr; }
         if (waterTex) { SDL_DestroyTexture(waterTex); waterTex = nullptr; }
-        if (nightAsphaltTex) { SDL_DestroyTexture(nightAsphaltTex); nightAsphaltTex = nullptr; }
+        if (sandTex) { SDL_DestroyTexture(sandTex); sandTex = nullptr; }
     }
 
     static void drawTiled(SDL_Renderer* renderer, SDL_Texture* tex, int dstX, int dstY, int dstW, int dstH, int scrollX, int scrollY, int tileW, int tileH) {
@@ -2367,40 +2443,54 @@ int main(int argc, char* argv[]) {
                 SDL_RenderFillRect(renderer, &curbEdgeR);
             }
         } else {
-            // Stage 3: Neon Cyber City Expressway (Tokyo Shuto / Wangan Midnight Metropolis)
+            // Stage 3: Coastal Beach Highway (Authentic NES Road Fighter Stage 3)
             constexpr int SLICE_H = 4;
+            float waveTime = frames * 0.04f;
 
-            // 1. Midnight Sky & Cyber City Backdrop
-            SDL_SetRenderDrawColor(renderer, COLOR_NIGHT_SKY.r, COLOR_NIGHT_SKY.g, COLOR_NIGHT_SKY.b, 255);
-            SDL_Rect nightBg = {GAME_X, 0, GAME_W, INTERNAL_HEIGHT};
-            SDL_RenderFillRect(renderer, &nightBg);
+            // 1. Base Ground (Sunny golden beach sand)
+            SDL_SetRenderDrawColor(renderer, COLOR_SAND.r, COLOR_SAND.g, COLOR_SAND.b, 255);
+            SDL_Rect sandBg = {GAME_X, 0, GAME_W, INTERNAL_HEIGHT};
+            SDL_RenderFillRect(renderer, &sandBg);
 
-            // 2. Roadside Skyscraper Facades with Glowing Windows & Neon Billboards
-            // Left Verge Skyscrapers (x: GAME_X, width ~68)
-            int firstBldgL = static_cast<int>((roadOffset - 250) / 160);
-            int lastBldgL = static_cast<int>((roadOffset + INTERNAL_HEIGHT + 250) / 160);
-            for (int b = firstBldgL; b <= lastBldgL; ++b) {
-                float bWorldY = b * 160.0f;
-                int sy = static_cast<int>(INTERNAL_HEIGHT - (bWorldY - roadOffset));
-                int bW = 66 + (std::abs(b * 13) % 3) * 6;
-                int bH = 140 + (std::abs(b * 17) % 4) * 12;
-                int bx = GAME_X + 2;
-                drawBuilding(renderer, textRenderer, bx, sy - bH, bW, bH, std::abs(b * 37 + 11), frames);
+            // Tiled golden sand texture over the beach area
+            GameTextures::drawTiled(renderer, textures.sandTex, GAME_X, 0, GAME_W / 2 + 60, INTERNAL_HEIGHT, 0, static_cast<int>(roadOffset), 256, 256);
+
+            // Alternating soft sand dune ripples
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, COLOR_SAND_DUNE.r, COLOR_SAND_DUNE.g, COLOR_SAND_DUNE.b, 75);
+            for (int i = -100; i < INTERNAL_HEIGHT + 100; i += 80) {
+                int y = (static_cast<int>(i + roadOffset * 0.7f) % (INTERNAL_HEIGHT + 80)) - 80;
+                SDL_Rect dL = {GAME_X, y, ROAD_MARGIN + 20, 36};
+                SDL_RenderFillRect(renderer, &dL);
+            }
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+
+            // Coastal Beach Props (Beach Parasols, Surfboards, Sunbeds on the sandy beach)
+            for (int i = -1; i < 7; ++i) {
+                int sy = (static_cast<int>(i * 155 + roadOffset) % (INTERNAL_HEIGHT + 155)) - 60;
+                int px = GAME_X + 18 + (std::abs(i * 19) % 28);
+                drawBeachProp(renderer, px, sy, std::abs(i) % 3);
             }
 
-            // Right Verge Skyscrapers (x: GAME_X + GAME_W - bW, width ~68)
-            int firstBldgR = static_cast<int>((roadOffset - 250) / 175);
-            int lastBldgR = static_cast<int>((roadOffset + INTERNAL_HEIGHT + 250) / 175);
-            for (int b = firstBldgR; b <= lastBldgR; ++b) {
-                float bWorldY = b * 175.0f;
-                int sy = static_cast<int>(INTERNAL_HEIGHT - (bWorldY - roadOffset));
-                int bW = 66 + (std::abs(b * 19) % 3) * 6;
-                int bH = 145 + (std::abs(b * 23) % 4) * 12;
-                int bx = GAME_X + GAME_W - bW - 2;
-                drawBuilding(renderer, textRenderer, bx, sy - bH, bW, bH, std::abs(b * 43 + 29), frames);
+            // Roadside Coconut Palm Trees (swaying gently in the tropical breeze)
+            for (int i = -2; i < 9; ++i) {
+                int py = (static_cast<int>(i * 125 + roadOffset) % (INTERNAL_HEIGHT + 125)) - 55;
+                int px = GAME_X + 22 + (i % 2 == 0 ? 8 : -6);
+                drawPalmTree(renderer, px, py, frames, std::abs(i * 37 + 13));
             }
 
-            // 3. Slice-by-Slice Road Rendering with Curves & Neon Barriers
+            // Wild coastal beach grass tufts
+            SDL_SetRenderDrawColor(renderer, COLOR_PALM_LEAF_1.r, COLOR_PALM_LEAF_1.g, COLOR_PALM_LEAF_1.b, 255);
+            for (int i = 0; i < 18; ++i) {
+                int gy = (static_cast<int>(i * 47 + roadOffset) % INTERNAL_HEIGHT);
+                int gx = GAME_X + 8 + (i * 23) % (ROAD_MARGIN - 20);
+                SDL_Rect g1 = {gx, gy, 3, 5};
+                SDL_Rect g2 = {gx + 2, gy - 2, 2, 4};
+                SDL_RenderFillRect(renderer, &g1);
+                SDL_RenderFillRect(renderer, &g2);
+            }
+
+            // 2. Slice-by-Slice Road & Shoreline Ocean Rendering
             for (int y = 0; y < INTERNAL_HEIGHT; y += SLICE_H) {
                 float worldY = roadOffset + (INTERNAL_HEIGHT - y);
                 float rLeft = 0.0f, rRight = 0.0f;
@@ -2410,110 +2500,125 @@ int main(int argc, char* argv[]) {
                 int iRight = static_cast<int>(rRight);
                 int rWidth = iRight - iLeft;
 
-                // Elevated Expressway Concrete Base / Catwalk Shoulders
-                SDL_SetRenderDrawColor(renderer, 24, 28, 38, 255);
-                SDL_Rect shL = {iLeft - 18, y, 18, SLICE_H};
-                SDL_Rect shR = {iRight, y, 18, SLICE_H};
+                // --- A. Right Side: Tropical Ocean Waters & Shoreline Surf ---
+                int shoreX = iRight + 16;
+                if (shoreX < GAME_X + GAME_W) {
+                    int oceanW = (GAME_X + GAME_W) - shoreX;
+
+                    // Deep azure base water
+                    SDL_SetRenderDrawColor(renderer, COLOR_TROPICAL_DEEP.r, COLOR_TROPICAL_DEEP.g, COLOR_TROPICAL_DEEP.b, 255);
+                    SDL_Rect sea = {shoreX, y, oceanW, SLICE_H};
+                    SDL_RenderFillRect(renderer, &sea);
+
+                    // Tropical turquoise mid swells
+                    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                    int waveBand = (static_cast<int>(y * 0.4f + roadOffset * 0.2f + std::sin(waveTime + y * 0.03f) * 12.0f)) % 45;
+                    if (waveBand < 16) {
+                        SDL_SetRenderDrawColor(renderer, COLOR_TROPICAL_MID.r, COLOR_TROPICAL_MID.g, COLOR_TROPICAL_MID.b, 200);
+                        SDL_RenderFillRect(renderer, &sea);
+                    } else if (waveBand < 24) {
+                        SDL_SetRenderDrawColor(renderer, COLOR_TROPICAL_SURF.r, COLOR_TROPICAL_SURF.g, COLOR_TROPICAL_SURF.b, 180);
+                        SDL_RenderFillRect(renderer, &sea);
+                    }
+                    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+
+                    // Wet shoreline sand band where waves lap the beach
+                    int tide = static_cast<int>(std::sin(waveTime * 1.2f + y * 0.04f) * 8.0f);
+                    int wetSandW = std::min(oceanW, 14 + tide);
+                    if (wetSandW > 0) {
+                        SDL_SetRenderDrawColor(renderer, COLOR_SAND_WET.r, COLOR_SAND_WET.g, COLOR_SAND_WET.b, 255);
+                        SDL_Rect wetR = {shoreX, y, wetSandW, SLICE_H};
+                        SDL_RenderFillRect(renderer, &wetR);
+                    }
+
+                    // Foaming white wave crest rolling onto the wet sand
+                    int foamBand = (static_cast<int>(y * 0.35f + roadOffset * 0.15f + std::cos(waveTime * 1.4f + y * 0.03f) * 10.0f)) % 50;
+                    if (foamBand < 4) {
+                        SDL_SetRenderDrawColor(renderer, COLOR_TROPICAL_FOAM.r, COLOR_TROPICAL_FOAM.g, COLOR_TROPICAL_FOAM.b, 255);
+                        int fx = shoreX + std::max(0, wetSandW - 4);
+                        int fw = std::min(oceanW - (fx - shoreX), 18);
+                        if (fw > 0) {
+                            SDL_Rect foam = {fx, y + 1, fw, 2};
+                            SDL_RenderFillRect(renderer, &foam);
+                        }
+                    }
+
+                    // Wooden pier breakwaters extending into the surf every 240px
+                    int pierCycle = static_cast<int>(worldY) % 240;
+                    if (pierCycle < 14) {
+                        SDL_SetRenderDrawColor(renderer, 95, 62, 34, 255);
+                        SDL_Rect pier = {shoreX + 6, y, std::min(oceanW - 8, 38), SLICE_H};
+                        SDL_RenderFillRect(renderer, &pier);
+
+                        // Wood plank highlight
+                        SDL_SetRenderDrawColor(renderer, 130, 88, 48, 255);
+                        SDL_Rect pHL = {shoreX + 6, y, 3, SLICE_H};
+                        SDL_RenderFillRect(renderer, &pHL);
+
+                        // White foam splashing on pier
+                        SDL_SetRenderDrawColor(renderer, COLOR_TROPICAL_FOAM.r, COLOR_TROPICAL_FOAM.g, COLOR_TROPICAL_FOAM.b, 255);
+                        SDL_Rect sp = {shoreX + 4, y, 2, SLICE_H};
+                        SDL_RenderFillRect(renderer, &sp);
+                    }
+                }
+
+                // --- B. Sandy Roadside Shoulders ---
+                SDL_SetRenderDrawColor(renderer, COLOR_SAND_DUNE.r, COLOR_SAND_DUNE.g, COLOR_SAND_DUNE.b, 255);
+                SDL_Rect shL = {iLeft - 14, y, 6, SLICE_H};
+                SDL_Rect shR = {iRight + 8, y, 8, SLICE_H};
                 SDL_RenderFillRect(renderer, &shL);
                 SDL_RenderFillRect(renderer, &shR);
 
-                // Catwalk shadow expansion joint
-                if ((static_cast<int>(worldY) % 40) < 2) {
-                    SDL_SetRenderDrawColor(renderer, 12, 15, 22, 255);
-                    SDL_RenderFillRect(renderer, &shL);
-                    SDL_RenderFillRect(renderer, &shR);
-                }
+                // --- C. Classic NES Road Fighter Red & White Rumble Strip Curbs ---
+                bool isRed = (((y + static_cast<int>(roadOffset)) / 20) % 2 == 0);
+                if (isRed) SDL_SetRenderDrawColor(renderer, 225, 40, 40, 255);
+                else SDL_SetRenderDrawColor(renderer, 245, 245, 245, 255);
 
-                // Midnight Wet Asphalt Road Surface
-                GameTextures::drawTiled(renderer, textures.nightAsphaltTex, iLeft, y, rWidth, SLICE_H, 0, static_cast<int>(roadOffset), 256, 256);
+                SDL_Rect curbL = {iLeft - 8, y, 8, SLICE_H};
+                SDL_Rect curbR = {iRight, y, 8, SLICE_H};
+                SDL_RenderFillRect(renderer, &curbL);
+                SDL_RenderFillRect(renderer, &curbR);
 
-                // Multi-Lane Markings on Neon Expressway
+                // Inner curb white highlight line
+                SDL_SetRenderDrawColor(renderer, 225, 225, 225, 255);
+                SDL_Rect cEdgeL = {iLeft - 1, y, 1, SLICE_H};
+                SDL_Rect cEdgeR = {iRight, y, 1, SLICE_H};
+                SDL_RenderFillRect(renderer, &cEdgeL);
+                SDL_RenderFillRect(renderer, &cEdgeR);
+
+                // --- D. Sun-Warmed Coastal Asphalt Surface ---
+                GameTextures::drawTiled(renderer, textures.asphaltTex, iLeft, y, rWidth, SLICE_H, 0, static_cast<int>(roadOffset), 256, 256);
+
+                // Outer solid edge lines
+                SDL_SetRenderDrawColor(renderer, COLOR_EDGE.r, COLOR_EDGE.g, COLOR_EDGE.b, 255);
+                SDL_Rect edgeL = {iLeft + 3, y, 3, SLICE_H};
+                SDL_Rect edgeR = {iRight - 6, y, 3, SLICE_H};
+                SDL_RenderFillRect(renderer, &edgeL);
+                SDL_RenderFillRect(renderer, &edgeR);
+
+                // --- E. 4-Lane Dashed Markings ---
                 float laneW = static_cast<float>(rWidth) / 4.0f;
-                if (((y + static_cast<int>(roadOffset)) % 50) < 26) {
-                    // Lane 1/2 Divider (Electric Neon Cyan dash)
-                    SDL_SetRenderDrawColor(renderer, 0, 220, 255, 240);
+                if (((y + static_cast<int>(roadOffset)) % 60) < 30) {
+                    // Lane 1/2 Divider (dashed white)
+                    SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
                     int x1 = static_cast<int>(rLeft + laneW);
-                    SDL_Rect d1 = {x1 - 1, y, 2, SLICE_H};
+                    SDL_Rect d1 = {x1 - 1, y, 3, SLICE_H};
                     SDL_RenderFillRect(renderer, &d1);
 
-                    // Center Expressway Divider (Double Neon Amber strip)
-                    SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255);
+                    // Center Highway Divider (bright sunny yellow double dash)
+                    SDL_SetRenderDrawColor(renderer, 255, 215, 30, 255);
                     int x2 = static_cast<int>(rLeft + laneW * 2.0f);
-                    SDL_Rect d2a = {x2 - 2, y, 2, SLICE_H};
+                    SDL_Rect d2a = {x2 - 3, y, 2, SLICE_H};
                     SDL_Rect d2b = {x2 + 1, y, 2, SLICE_H};
                     SDL_RenderFillRect(renderer, &d2a);
                     SDL_RenderFillRect(renderer, &d2b);
 
-                    // Lane 3/4 Divider (Electric Neon Cyan dash)
-                    SDL_SetRenderDrawColor(renderer, 0, 220, 255, 240);
+                    // Lane 3/4 Divider (dashed white)
+                    SDL_SetRenderDrawColor(renderer, 240, 240, 240, 255);
                     int x3 = static_cast<int>(rLeft + laneW * 3.0f);
-                    SDL_Rect d3 = {x3 - 1, y, 2, SLICE_H};
+                    SDL_Rect d3 = {x3 - 1, y, 3, SLICE_H};
                     SDL_RenderFillRect(renderer, &d3);
                 }
-
-                // Glowing Cyberpunk Safety Barriers & Neon Edge Rails
-                // Left Barrier (Cyber Neon Cyan)
-                SDL_SetRenderDrawColor(renderer, 18, 30, 48, 255);
-                SDL_Rect curbL = {iLeft - 8, y, 8, SLICE_H};
-                SDL_RenderFillRect(renderer, &curbL);
-
-                SDL_SetRenderDrawColor(renderer, 0, 235, 255, 255);
-                SDL_Rect railL = {iLeft - 8, y, 2, SLICE_H};
-                SDL_RenderFillRect(renderer, &railL);
-
-                // Right Barrier (Cyber Neon Magenta)
-                SDL_SetRenderDrawColor(renderer, 48, 18, 38, 255);
-                SDL_Rect curbR = {iRight, y, 8, SLICE_H};
-                SDL_RenderFillRect(renderer, &curbR);
-
-                SDL_SetRenderDrawColor(renderer, 255, 45, 150, 255);
-                SDL_Rect railR = {iRight + 6, y, 2, SLICE_H};
-                SDL_RenderFillRect(renderer, &railR);
-
-                // Embedded Roadside Cats-Eye Reflectors (glowing amber every 20px)
-                if ((static_cast<int>(worldY) % 24) < 3) {
-                    SDL_SetRenderDrawColor(renderer, 255, 230, 80, 255);
-                    SDL_Rect refL = {iLeft - 2, y + 1, 2, 2};
-                    SDL_Rect refR = {iRight, y + 1, 2, 2};
-                    SDL_RenderFillRect(renderer, &refL);
-                    SDL_RenderFillRect(renderer, &refR);
-                }
-            }
-
-            // 4. Overhead Cantilever Highway Streetlights
-            int firstLight = static_cast<int>((roadOffset - 120) / 260);
-            int lastLight = static_cast<int>((roadOffset + INTERNAL_HEIGHT + 120) / 260);
-            for (int l = firstLight; l <= lastLight; ++l) {
-                float lightWorldY = l * 260.0f;
-                int sy = static_cast<int>(INTERNAL_HEIGHT - (lightWorldY - roadOffset));
-                if (sy < -30 || sy > INTERNAL_HEIGHT + 30) continue;
-
-                float rLeft, rRight;
-                getRoadEdges(3, lightWorldY, trackDistance, rLeft, rRight);
-
-                bool isLeft = (l % 2 == 0);
-                int poleX = isLeft ? static_cast<int>(rLeft) - 8 : static_cast<int>(rRight) + 8;
-                int lampX = isLeft ? static_cast<int>(rLeft) + 26 : static_cast<int>(rRight) - 26;
-
-                // Steel pole mount
-                SDL_SetRenderDrawColor(renderer, 75, 88, 110, 255);
-                SDL_Rect pole = {poleX - 2, sy - 8, 4, 16};
-                SDL_RenderFillRect(renderer, &pole);
-
-                // Cantilever arm extending toward road
-                SDL_SetRenderDrawColor(renderer, 100, 115, 140, 255);
-                SDL_RenderDrawLine(renderer, poleX, sy, lampX, sy);
-                SDL_RenderDrawLine(renderer, poleX, sy - 1, lampX, sy - 1);
-
-                // Luminaire Lamp Head
-                SDL_SetRenderDrawColor(renderer, 255, 235, 120, 255);
-                SDL_Rect lHead = {lampX - 4, sy - 3, 8, 6};
-                SDL_RenderFillRect(renderer, &lHead);
-
-                // Soft ambient illumination pool onto the asphalt
-                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-                drawCircle(renderer, lampX, sy + 14, 34, {255, 230, 120, 24});
-                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
             }
         }
 
@@ -2614,7 +2719,7 @@ int main(int argc, char* argv[]) {
         SDL_RenderDrawLine(renderer, lhX, lhY + 1, lhX + lhW - 1, lhY + 1);
 
         textRenderer.drawTextWithShadow(renderer, "STAGE 0" + std::to_string(currentStage), lhX + lhW / 2, lhY + 22, 20, {255, 230, 60, 255}, true);
-        textRenderer.drawTextWithShadow(renderer, (currentStage == 1 ? "FOREST HIGHWAY" : (currentStage == 2 ? "COASTAL BRIDGE" : "NEON EXPRESSWAY")), lhX + lhW / 2, lhY + 46, 13, {100, 220, 255, 255}, true);
+        textRenderer.drawTextWithShadow(renderer, (currentStage == 1 ? "FOREST HIGHWAY" : (currentStage == 2 ? "COASTAL BRIDGE" : "COASTAL BEACH")), lhX + lhW / 2, lhY + 46, 13, {100, 220, 255, 255}, true);
         textRenderer.drawText(renderer, "GPS TRACK TELEMETRY", lhX + lhW / 2, lhY + 63, 10, {140, 158, 180, 255}, true);
 
         // 3. Vertical GPS Track Corridor (y: 104 to 684)
