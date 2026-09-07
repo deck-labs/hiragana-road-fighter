@@ -180,6 +180,7 @@ def get_latin_font(size: int) -> pygame.font.Font:
 class TrafficCar:
     WIDTH = 68.0
     HEIGHT = 130.0
+    LANE_FRACTIONS = [0.125, 0.375, 0.625, 0.875]
     
     _textures = {}
 
@@ -189,8 +190,16 @@ class TrafficCar:
         self.speed_kmh = speed
         self.color_name = color
         
-        lane_fractions = [0.125, 0.375, 0.625, 0.875]
-        self.lane_fraction = lane_fractions[max(0, min(3, lane_idx))]
+        self.lane_idx = max(0, min(3, lane_idx))
+        self.lane_fraction = self.LANE_FRACTIONS[self.lane_idx]
+        self.target_lane_fraction = self.lane_fraction
+        self.lane_change_timer = 0.0
+        self.lane_change_speed = 1.6
+        
+        self.lateral_offset = 0.0
+        self.lateral_vx = 0.0
+        self.is_sparking = False
+        self.spark_side = 0
         
         self.x = 0.0
         self.y = -500.0
@@ -246,7 +255,41 @@ class TrafficCar:
             surf.blit(txt, txt.get_rect(center=(int(cls.WIDTH * 0.5), 64)))
         return surf
 
+    def attempt_lane_change(self, new_lane_idx: int):
+        new_lane_idx = max(0, min(3, new_lane_idx))
+        if new_lane_idx != self.lane_idx:
+            self.lane_idx = new_lane_idx
+            self.target_lane_fraction = self.LANE_FRACTIONS[new_lane_idx]
+            self.lane_change_timer = 1.0
+
+    def apply_lateral_impulse(self, impulse: float):
+        self.lateral_vx += impulse
+        self.trigger_wobble(0.4)
+
+    def trigger_wobble(self, duration: float = 0.4):
+        self.wobble_timer = max(self.wobble_timer, duration)
+
     def update(self, delta: float):
+        if self.lane_change_timer > 0.0:
+            self.lane_change_timer = max(0.0, self.lane_change_timer - delta)
+            
+        # Smooth lane transition
+        if abs(self.lane_fraction - self.target_lane_fraction) > 0.001:
+            diff = self.target_lane_fraction - self.lane_fraction
+            step = math.copysign(min(abs(diff), self.lane_change_speed * delta), diff)
+            self.lane_fraction += step
+        else:
+            self.lane_fraction = self.target_lane_fraction
+            
+        # Lateral velocity and damping
+        self.lateral_offset += self.lateral_vx * delta
+        damping = math.pow(0.12, delta)
+        self.lateral_vx *= damping
+        spring = math.pow(0.20, delta)
+        self.lateral_offset *= spring
+        if abs(self.lateral_offset) < 0.2:
+            self.lateral_offset = 0.0
+            
         if not self.is_active:
             if self.is_matched:
                 self.match_anim_timer += delta
@@ -258,6 +301,9 @@ class TrafficCar:
                 if self.wobble_timer <= 0.0:
                     self.to_remove = True
             return
+            
+        if self.wobble_timer > 0.0:
+            self.wobble_timer = max(0.0, self.wobble_timer - delta)
             
         # Move along track
         self.world_y += self.speed_kmh * 3.0 * delta
@@ -272,7 +318,27 @@ class TrafficCar:
         r_width = r_right - r_left
         car_margin = (self.WIDTH * 0.5) + 8.0
         avail_width = max(self.WIDTH, r_width - (car_margin * 2.0))
-        self.x = r_left + car_margin + (self.lane_fraction * avail_width)
+        target_x = r_left + car_margin + (self.lane_fraction * avail_width) + self.lateral_offset
+        
+        # Road boundary clamp & guardrail bounce
+        min_x = r_left + (self.WIDTH * 0.5)
+        max_x = r_right - (self.WIDTH * 0.5)
+        if target_x < min_x:
+            target_x = min_x
+            if self.lateral_vx < 0:
+                self.lateral_vx = -self.lateral_vx * 0.5
+            self.is_sparking = True
+            self.spark_side = -1
+        elif target_x > max_x:
+            target_x = max_x
+            if self.lateral_vx > 0:
+                self.lateral_vx = -self.lateral_vx * 0.5
+            self.is_sparking = True
+            self.spark_side = 1
+        else:
+            self.is_sparking = False
+            
+        self.x = target_x
         
         # Despawn bounds
         max_y = (screen_h + 120.0) if screen_h is not None else 1300.0
@@ -317,3 +383,12 @@ class TrafficCar:
             
         rect = surf_to_draw.get_rect(center=(int(round(self.x)), int(round(self.y))))
         surface.blit(surf_to_draw, rect)
+        
+        # Guardrail sparks
+        if self.is_sparking:
+            spk_x = self.x + (self.spark_side * self.WIDTH * 0.5)
+            for _ in range(3):
+                ox = random.uniform(-6, 6)
+                oy = random.uniform(0, 16)
+                sz = random.uniform(2, 5)
+                pygame.draw.circle(surface, (255, 235, 80), (int(spk_x + ox), int(self.y + oy)), int(sz))

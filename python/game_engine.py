@@ -101,6 +101,7 @@ class GameEngine:
         self.match_timer = 0.0
         self.stage_clear_timer = 0.0
         self.spawn_timer = 0.0
+        self.traffic_bump_sfx_timer = 0.0
         
         self.traffic_cars: list[TrafficCar] = []
         
@@ -255,7 +256,20 @@ class GameEngine:
             pick_romaji = random.choice(pool)["romaji"]
             
         spawn_world_y = custom_y if custom_y > 0.0 else (self.track_distance + 1050.0)
-        lane_idx = random.randint(0, 3)
+        
+        # Check occupied lanes near spawn_world_y to avoid overlap
+        available_lanes = [0, 1, 2, 3]
+        for car in self.traffic_cars:
+            if car.is_active and abs(car.world_y - spawn_world_y) < 220.0:
+                if car.lane_idx in available_lanes:
+                    available_lanes.remove(car.lane_idx)
+                    
+        if available_lanes:
+            lane_idx = random.choice(available_lanes)
+        else:
+            spawn_world_y += 240.0
+            lane_idx = random.randint(0, 3)
+            
         spd = random.uniform(70.0, 130.0)
         col = random.choice(TRAFFIC_COLORS)
         
@@ -869,8 +883,13 @@ class GameEngine:
                 self.spawn_timer = 0.0
                 self._spawn_traffic_car()
                 
-        # 7. Update Traffic Cars & Collisions
+        # 7. Update Traffic Cars, Physics & Collisions
+        if self.traffic_bump_sfx_timer > 0.0:
+            self.traffic_bump_sfx_timer = max(0.0, self.traffic_bump_sfx_timer - delta)
+
         p_box = self.player.get_hitbox()
+        
+        # 7a. Individual Car Update & Screen Positioning
         for car in list(self.traffic_cars):
             car.update(delta)
             edges_at_car = self.road.get_road_edges(self.current_stage, car.world_y)
@@ -879,8 +898,100 @@ class GameEngine:
             if car.to_remove:
                 self.traffic_cars.remove(car)
                 continue
+
+        active_cars = [c for c in self.traffic_cars if c.is_active]
+
+        # 7b. Longitudinal Anti-Ghosting & Arcade Traffic Avoidance (Traffic vs Traffic)
+        active_cars.sort(key=lambda c: c.world_y, reverse=True)
+        min_gap = TrafficCar.HEIGHT + 20.0
+        
+        for i in range(len(active_cars)):
+            lead = active_cars[i]
+            for j in range(i + 1, len(active_cars)):
+                trail = active_cars[j]
                 
-            # Responsive Collision Detection
+                dx = abs(lead.x - trail.x)
+                if dx < TrafficCar.WIDTH * 0.85:
+                    gap_y = lead.world_y - trail.world_y
+                    if TrafficCar.HEIGHT * 0.5 <= gap_y < min_gap:
+                        trail.world_y = lead.world_y - min_gap
+                        trail.speed_kmh = min(trail.speed_kmh, lead.speed_kmh)
+                        edges_at_trail = self.road.get_road_edges(self.current_stage, trail.world_y)
+                        trail.update_screen_pos(self.track_distance, edges_at_trail, player_screen_y=self.player_screen_y, screen_h=self.virtual_height)
+                    elif min_gap <= gap_y < 220.0 and trail.speed_kmh > lead.speed_kmh and trail.lane_change_timer <= 0.0:
+                        left_free = True
+                        right_free = True
+                        
+                        target_left_lane = trail.lane_idx - 1
+                        target_right_lane = trail.lane_idx + 1
+                        
+                        if target_left_lane < 0:
+                            left_free = False
+                        if target_right_lane > 3:
+                            right_free = False
+                            
+                        for other in active_cars:
+                            if other is trail:
+                                continue
+                            if abs(other.world_y - trail.world_y) < 220.0:
+                                if other.lane_idx == target_left_lane or abs(other.lane_fraction - TrafficCar.LANE_FRACTIONS[max(0, target_left_lane)]) < 0.15:
+                                    left_free = False
+                                if other.lane_idx == target_right_lane or abs(other.lane_fraction - TrafficCar.LANE_FRACTIONS[min(3, target_right_lane)]) < 0.15:
+                                    right_free = False
+                                    
+                        if left_free and right_free:
+                            chosen_lane = target_left_lane if trail.lane_idx >= 2 else target_right_lane
+                            trail.attempt_lane_change(chosen_lane)
+                        elif left_free:
+                            trail.attempt_lane_change(target_left_lane)
+                        elif right_free:
+                            trail.attempt_lane_change(target_right_lane)
+                        else:
+                            trail.speed_kmh = min(trail.speed_kmh, lead.speed_kmh)
+
+        # 7c. Direct Hitbox Collisions (Traffic vs Traffic)
+        for i in range(len(active_cars)):
+            car_a = active_cars[i]
+            box_a = car_a.get_hitbox()
+            for j in range(i + 1, len(active_cars)):
+                car_b = active_cars[j]
+                box_b = car_b.get_hitbox()
+                
+                if box_a.colliderect(box_b):
+                    dx = car_b.x - car_a.x
+                    overlap_x = (box_a.width * 0.5 + box_b.width * 0.5) - abs(dx)
+                    push = max(6.0, overlap_x * 0.5 + 4.0)
+                    impulse = 260.0
+                    
+                    if car_a.x < car_b.x:
+                        car_a.lateral_offset -= push
+                        car_b.lateral_offset += push
+                        car_a.apply_lateral_impulse(-impulse)
+                        car_b.apply_lateral_impulse(impulse)
+                    else:
+                        car_a.lateral_offset += push
+                        car_b.lateral_offset -= push
+                        car_a.apply_lateral_impulse(impulse)
+                        car_b.apply_lateral_impulse(-impulse)
+                        
+                    edges_a = self.road.get_road_edges(self.current_stage, car_a.world_y)
+                    car_a.update_screen_pos(self.track_distance, edges_a, player_screen_y=self.player_screen_y, screen_h=self.virtual_height)
+                    edges_b = self.road.get_road_edges(self.current_stage, car_b.world_y)
+                    car_b.update_screen_pos(self.track_distance, edges_b, player_screen_y=self.player_screen_y, screen_h=self.virtual_height)
+                    
+                    car_a.trigger_wobble(0.4)
+                    car_b.trigger_wobble(0.4)
+                    
+                    avg_speed = (car_a.speed_kmh + car_b.speed_kmh) * 0.5
+                    car_a.speed_kmh = max(40.0, avg_speed * 0.95)
+                    car_b.speed_kmh = max(40.0, avg_speed * 0.95)
+                    
+                    if self.traffic_bump_sfx_timer <= 0.0:
+                        self.audio.play_crash()
+                        self.traffic_bump_sfx_timer = 0.35
+
+        # 7d. Player vs Traffic Car Collisions
+        for car in active_cars:
             if car.is_active and p_box.colliderect(car.get_hitbox()):
                 car_ro = car.romaji.strip().lower()
                 target_ro = self.current_target_kana.get("romaji", "").strip().lower()
@@ -906,19 +1017,22 @@ class GameEngine:
                     self.pick_new_target_kana()
                 else:
                     # MISMATCH CRASH! Spinout and 15% penalty
-                    self.player.trigger_wobble()
-                    self.fuel = max(0.0, self.fuel - FUEL_PENALTY)
-                    self.audio.play_crash()
+                    if self.player.wobble_timer <= 0.0:
+                        self.player.trigger_wobble()
+                        self.fuel = max(0.0, self.fuel - FUEL_PENALTY)
+                        self.audio.play_crash()
+                    
                     car.trigger_crash()
                     
-                    # Classic arcade lateral bounce impulse
+                    # Classic arcade lateral bounce impulse applied to BOTH player and traffic car
                     bounce = 24.0
+                    traffic_impulse = 380.0
                     if self.player.x < car.x:
                         self.player.x -= bounce
-                        car.x += bounce
+                        car.apply_lateral_impulse(traffic_impulse)
                     else:
                         self.player.x += bounce
-                        car.x -= bounce
+                        car.apply_lateral_impulse(-traffic_impulse)
 
         if self.match_timer > 0.0:
             self.match_timer = max(0.0, self.match_timer - delta)
