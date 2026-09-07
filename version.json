@@ -1,11 +1,11 @@
 {
-  "version": "0.2.1",
-  "tag_name": "v0.2.1",
-  "name": "Hiragana Road Fighter v0.2.1 (Adaptive Resolution & Aspect Ratio)",
+  "version": "0.2.2",
+  "tag_name": "v0.2.2",
+  "name": "Hiragana Road Fighter v0.2.2 (HUD Version Display & Online Updater Fix)",
   "release_date": "2026-09-07",
   "appimage_filename": "Hiragana_Road_Fighter-x86_64.AppImage",
-  "download_url": "https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage",
+  "download_url": "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/Hiragana_Road_Fighter-x86_64.AppImage",
   "fallback_raw_url": "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/Hiragana_Road_Fighter-x86_64.AppImage",
-  "changelog": "Auto-detection of maximum system display resolution (Steam Deck 1280x800 native, 1080p, 1440p, 4K UHD, 21:9 Ultrawide), adaptive aspect ratio preservation (letterboxing/pillarboxing) with in-game Options menu toggle (AUTO vs FULL STRETCH), and virtual mouse coordinate translation."
+  "changelog": "Title screen upper-left version indicator, auto-display resolution & adaptive aspect ratio, detached process restart, and CDN cache-busting."
 }
 

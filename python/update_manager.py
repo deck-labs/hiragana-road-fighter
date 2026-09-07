@@ -121,11 +121,16 @@ class UpdateManager:
                 self.error_message = f"Check failed: {e}"
 
     def _fetch_version_metadata(self) -> dict:
-        headers = {"User-Agent": "HiraganaRoadFighter-Updater/1.0"}
+        headers = {
+            "User-Agent": "HiraganaRoadFighter-Updater/1.0",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache"
+        }
         
         # 1. Primary: version.json on raw.githubusercontent.com (No API rate limits)
         try:
-            req = urllib.request.Request(VERSION_CHECK_URL, headers=headers)
+            cachebust_url = f"{VERSION_CHECK_URL}?t={int(time.time())}"
+            req = urllib.request.Request(cachebust_url, headers=headers)
             with urllib.request.urlopen(req, timeout=6) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode("utf-8"))
@@ -183,12 +188,18 @@ class UpdateManager:
         temp_file = target + ".tmp_update"
         
         download_ok = False
-        headers = {"User-Agent": "HiraganaRoadFighter-Updater/1.0"}
+        headers = {
+            "User-Agent": "HiraganaRoadFighter-Updater/1.0",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache"
+        }
 
         for url in urls_to_try:
             try:
-                req = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(req, timeout=15) as resp:
+                sep = "&" if "?" in url else "?"
+                busted_url = f"{url}{sep}t={int(time.time())}"
+                req = urllib.request.Request(busted_url, headers=headers)
+                with urllib.request.urlopen(req, timeout=30) as resp:
                     if resp.status != 200:
                         continue
                     
@@ -250,7 +261,20 @@ class UpdateManager:
         target = self.get_target_appimage_path()
         if os.path.isfile(target) and os.access(target, os.X_OK):
             try:
-                subprocess.Popen([target])
+                clean_env = os.environ.copy()
+                for var in ["APPIMAGE", "APPDIR", "ARGV0", "OWD"]:
+                    clean_env.pop(var, None)
+                if "LD_LIBRARY_PATH" in clean_env:
+                    clean_ld = [p for p in clean_env["LD_LIBRARY_PATH"].split(":") if not p.startswith("/tmp/.mount_")]
+                    if clean_ld:
+                        clean_env["LD_LIBRARY_PATH"] = ":".join(clean_ld)
+                    else:
+                        clean_env.pop("LD_LIBRARY_PATH", None)
+                if "PATH" in clean_env:
+                    clean_path = [p for p in clean_env["PATH"].split(":") if not p.startswith("/tmp/.mount_")]
+                    clean_env["PATH"] = ":".join(clean_path)
+
+                subprocess.Popen([target], env=clean_env, start_new_session=True)
                 pygame.quit()
                 sys.exit(0)
             except Exception as e:

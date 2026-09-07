@@ -32,6 +32,7 @@ class HudRenderer:
         self.font_menu = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 28)
         self.font_large_kana = pygame.font.Font(get_asset_path("fonts/NotoSansCJK-Bold.ttc"), 88)
         self.font_speed = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 48)
+        self.font_version = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 16)
         self.font_sub = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 15)
         self.font_tiny = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 11)
 
@@ -306,6 +307,16 @@ class HudRenderer:
         # Solid dark arcade canvas
         surface.fill((8, 12, 22))
         
+        # Current Version Running Indicator (Upper-Left)
+        ver_text = f"VERSION {GAME_VERSION}"
+        txt_ver = self.font_version.render(ver_text, True, (130, 195, 245))
+        badge_w = txt_ver.get_width() + 24
+        badge_h = txt_ver.get_height() + 10
+        badge_rect = pygame.Rect(40, 32, badge_w, badge_h)
+        pygame.draw.rect(surface, (12, 22, 38), badge_rect, border_radius=6)
+        pygame.draw.rect(surface, (30, 70, 115), badge_rect, 1, border_radius=6)
+        surface.blit(txt_ver, txt_ver.get_rect(center=badge_rect.center))
+        
         # 1. Title Text with NES-style Chromatic Depth
         title_text = "HIRAGANA ROAD FIGHTER"
         title_y = 310
@@ -375,10 +386,6 @@ class HudRenderer:
             arrow = self.font_menu.render("►", True, COLOR_GOLD)
             surface.blit(arrow, (r3.left - 40, r3.top))
         surface.blit(txt_3, r3)
-        
-        # Version Badge (Bottom-Right)
-        txt_ver = self.font_sub.render(f"v{GAME_VERSION}", True, (110, 140, 175))
-        surface.blit(txt_ver, (SCREEN_WIDTH - 120, SCREEN_HEIGHT - 45))
 
         # Display Mode Badge (Bottom-Left)
         if display_info:
