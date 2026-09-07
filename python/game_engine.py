@@ -520,8 +520,8 @@ class GameEngine:
                 mx, my = self.window_to_virtual_coords(*event.pos)
                 if self.is_update_dialog_open:
                     cx, cy = self.virtual_width // 2, self.virtual_height // 2
-                    modal_rect = pygame.Rect(cx - 420, cy - 250, 840, 500)
-                    btn_rect = pygame.Rect(cx - 300, cy + 190, 600, 55)
+                    modal_rect = pygame.Rect(cx - 490, cy - 280, 980, 560)
+                    btn_rect = pygame.Rect(cx - 420, cy + 190, 840, 65)
                     if btn_rect.collidepoint(mx, my):
                         self.menu_confirm()
                     elif not modal_rect.collidepoint(mx, my):
@@ -1003,7 +1003,9 @@ class GameEngine:
                     "tu": ["tu", "tsu"],
                     "tsu": ["tu", "tsu"],
                     "ti": ["ti", "chi"],
-                    "chi": ["ti", "chi"]
+                    "chi": ["ti", "chi"],
+                    "fu": ["fu", "hu"],
+                    "hu": ["fu", "hu"]
                 }
                 is_match = (car_ro == target_ro) or (target_ro in alt_matches and car_ro in alt_matches[target_ro])
                 

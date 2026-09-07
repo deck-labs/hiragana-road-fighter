@@ -21,13 +21,13 @@ ROAD_WIDTH = GAME_W - (ROAD_MARGIN * 2.0)  # 640.0 px wide 4-lane highway
 PLAYER_SCREEN_Y = 840.0
 
 # Version & Release Metadata
-GAME_VERSION = "0.2.6"
+GAME_VERSION = "0.2.7"
 GITHUB_REPO = "deck-labs/hiragana-road-fighter"
 VERSION_CHECK_URL = "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/version.json"
 RELEASES_API_URL = "https://api.github.com/repos/deck-labs/hiragana-road-fighter/releases/latest"
 
 # Gameplay Mechanics & Balancing
-STAGE_TRACK_LENGTH = 36000.0   # Exactly 36,000 units across all 5 stages
+STAGE_TRACK_LENGTH = 36000.0   # Exactly 36,000 units per stage across all 6 stages
 GAME_SPEED_SCALE = 0.5         # 50% arcade speed scale for readable kana recognition
 MAX_FUEL = 100.0
 FUEL_REWARD = 30.0             # +30% fuel on correct Kana match
@@ -35,14 +35,15 @@ FUEL_PENALTY = 15.0            # -15% fuel penalty on wrong car collision
 SCORE_REWARD = 50.0
 
 # Total Stages
-TOTAL_STAGES = 5
+TOTAL_STAGES = 6
 
 STAGE_NAMES = {
     1: "FOREST HIGHWAY",
     2: "COASTAL BRIDGE",
     3: "COASTAL BEACH",
     4: "MOUNTAIN PASS",
-    5: "NEON METROPOLIS"
+    5: "NEON METROPOLIS",
+    6: "VOLCANO CALDERA"
 }
 
 STAGE_ENV_NOTES = {
@@ -50,7 +51,8 @@ STAGE_ENV_NOTES = {
     2: "COASTAL OCEAN BRIDGE // NARROW CHOKEPOINTS // STEEL SPANS",
     3: "TROPICAL BEACH SHORELINE // CONTINUOUS SWEEPING CURVES",
     4: "MOUNTAIN CANYON PASS // ROCKY CLIFF GORGE // TIGHT S-CURVES",
-    5: "NEON CITY EXPRESSWAY // HIGH-SPEED URBAN SWEEPS // SKYSCRAPERS"
+    5: "NEON CITY EXPRESSWAY // HIGH-SPEED URBAN SWEEPS // SKYSCRAPERS",
+    6: "VOLCANIC OBSIDIAN RIDGE // GLOWING MAGMA CRAGS // HIGH-SPEED TECHNICAL APEXES"
 }
 
 STAGE_KANA = {
@@ -88,6 +90,13 @@ STAGE_KANA = {
         {"kana": "ぬ", "romaji": "nu"},
         {"kana": "ね", "romaji": "ne"},
         {"kana": "の", "romaji": "no"}
+    ],
+    6: [
+        {"kana": "は", "romaji": "ha"},
+        {"kana": "ひ", "romaji": "hi"},
+        {"kana": "ふ", "romaji": "fu"},
+        {"kana": "へ", "romaji": "he"},
+        {"kana": "ほ", "romaji": "ho"}
     ]
 }
 

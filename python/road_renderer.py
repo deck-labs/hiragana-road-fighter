@@ -44,6 +44,8 @@ class RoadRenderer:
         self.stage5_buildings = []
         self.stage5_lamps = []
         self.stage5_gantries = []
+        self.stage6_scenery = []
+        self.stage6_magma_vents = []
         
         self._load_assets()
         self._generate_scenery()
@@ -154,6 +156,29 @@ class RoadRenderer:
         while gy < STAGE_TRACK_LENGTH - 1500.0:
             self.stage5_gantries.append(gy)
             gy += 4500.0
+
+        # Stage 6: Volcano Caldera Scenery (basalt boulders, scorched pine trees, glowing magma vents)
+        y = 200.0
+        while y < STAGE_TRACK_LENGTH - 800.0:
+            side = -1 if rng.random() < 0.5 else 1
+            offset_x = (GAME_X + 60.0) if side == -1 else (GAME_X + GAME_W - 60.0)
+            is_pine = (rng.random() < 0.35)
+            self.stage6_scenery.append({
+                "pos": (offset_x + rng.uniform(-25, 25), y),
+                "is_pine": is_pine
+            })
+            y += rng.uniform(85.0, 180.0)
+            
+        vy = 300.0
+        while vy < STAGE_TRACK_LENGTH - 600.0:
+            side = -1 if rng.random() < 0.5 else 1
+            vent_x = (GAME_X + 75.0) if side == -1 else (GAME_X + GAME_W - 75.0)
+            self.stage6_magma_vents.append({
+                "x": vent_x + rng.uniform(-20, 20),
+                "y": vy,
+                "radius": rng.uniform(16, 28)
+            })
+            vy += rng.uniform(220.0, 380.0)
 
     def get_road_edges(self, stage: int, world_y: float) -> tuple[float, float]:
         """Calculates (left_edge, right_edge) for any track coordinate."""
@@ -389,6 +414,61 @@ class RoadRenderer:
                     shift = 50.0 * (0.5 + 0.5 * math.cos(t * math.pi))
                     
             return (normal_left + shift, normal_right + shift)
+
+        if stage == 6:
+            # Volcano Caldera - Technical volcanic ridge curves, sharp apexes, and fast straights along crater lip
+            if world_y >= STAGE_TRACK_LENGTH - 2400.0:
+                return (normal_left, normal_right)
+                
+            seg_len = 2200.0
+            seg_idx = int(world_y / seg_len)
+            seg_pos = world_y % seg_len
+            pattern = abs(seg_idx) % 4
+            
+            shift = 0.0
+            if pattern == 0:
+                # Caldera Rim Left Sweeper
+                if 250.0 <= seg_pos < 800.0:
+                    t = (seg_pos - 250.0) / 550.0
+                    shift = -110.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 800.0 <= seg_pos < 1450.0:
+                    shift = -110.0
+                elif 1450.0 <= seg_pos < 2000.0:
+                    t = (seg_pos - 1450.0) / 550.0
+                    shift = -110.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 1:
+                # Caldera Rim Right Sweeper
+                if 250.0 <= seg_pos < 800.0:
+                    t = (seg_pos - 250.0) / 550.0
+                    shift = 110.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 800.0 <= seg_pos < 1450.0:
+                    shift = 110.0
+                elif 1450.0 <= seg_pos < 2000.0:
+                    t = (seg_pos - 1450.0) / 550.0
+                    shift = 110.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 2:
+                # Technical Volcanic Chicane (Right then Left)
+                if 200.0 <= seg_pos < 700.0:
+                    t = (seg_pos - 200.0) / 500.0
+                    shift = 95.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 700.0 <= seg_pos < 1550.0:
+                    t = (seg_pos - 700.0) / 850.0
+                    shift = 95.0 - 190.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 1550.0 <= seg_pos < 2050.0:
+                    t = (seg_pos - 1550.0) / 500.0
+                    shift = -95.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            else:
+                # Ridge Crest Straight with gentle curve
+                if 300.0 <= seg_pos < 800.0:
+                    t = (seg_pos - 300.0) / 500.0
+                    shift = -40.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 800.0 <= seg_pos < 1400.0:
+                    shift = -40.0
+                elif 1400.0 <= seg_pos < 1900.0:
+                    t = (seg_pos - 1400.0) / 500.0
+                    shift = -40.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+                    
+            return (normal_left + shift, normal_right + shift)
             
         return (normal_left, normal_right)
 
@@ -420,8 +500,10 @@ class RoadRenderer:
             self._render_stage3(surface)
         elif stage == 4:
             self._render_stage4(surface)
-        else:
+        elif stage == 5:
             self._render_stage5(surface)
+        else:
+            self._render_stage6(surface)
             
         self._render_finish_line(surface)
 
@@ -823,6 +905,82 @@ class RoadRenderer:
                     if hasattr(self, 'font_gantry') and self.font_gantry:
                         ts = self.font_gantry.render(txt_code, True, (255, 255, 255))
                         surface.blit(ts, ts.get_rect(center=(int(sx + sign_w * 0.5), int(scr_y - 44))))
+
+    def _render_stage6(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
+        
+        # 1. Dark Volcanic Twilight Sky & Basalt Bedrock Base
+        pygame.draw.rect(surface, (18, 12, 16), (GAME_X, 0, GAME_W, scr_h))
+        
+        # 2. Volcanic Rock Ground on Verges
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X, 0, ROAD_MARGIN, scr_h))
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, scr_h))
+        
+        # Dark volcanic ash shading overlay
+        ash_overlay = pygame.Surface((int(ROAD_MARGIN), scr_h), pygame.SRCALPHA)
+        ash_overlay.fill((25, 12, 16, 175))
+        surface.blit(ash_overlay, (GAME_X, 0))
+        surface.blit(ash_overlay, (GAME_X + GAME_W - ROAD_MARGIN, 0))
+        
+        # 3. Glowing Magma Vents / Caldera Fissures in the verges
+        import time
+        pulse = 0.5 + 0.5 * math.sin(time.time() * 3.5)
+        for vent in self.stage6_magma_vents:
+            vx, vy, vr = vent["x"], vent["y"], vent["radius"]
+            scr_y = ply_y - (vy - self.track_distance)
+            if -40 <= scr_y <= scr_h + 40:
+                pygame.draw.circle(surface, (180, 40, 10), (int(vx), int(scr_y)), int(vr))
+                pygame.draw.circle(surface, (255, 95, 20), (int(vx), int(scr_y)), int(vr * 0.7))
+                pygame.draw.circle(surface, (255, 200, 50), (int(vx), int(scr_y)), int(vr * 0.4 * (0.8 + pulse * 0.4)))
+                
+        # 4. Scorched Trees & Basalt Crags
+        for item in self.stage6_scenery:
+            px, py = item["pos"]
+            is_pine = item["is_pine"]
+            scr_y = ply_y - (py - self.track_distance)
+            if -100 <= scr_y <= scr_h + 100:
+                if is_pine and self.tex_pine_tree:
+                    pine_surf = pygame.transform.scale(self.tex_pine_tree, (48, 64))
+                    surface.blit(pine_surf, (px - 24, scr_y - 64))
+                elif not is_pine and self.tex_boulder:
+                    boulder_surf = pygame.transform.scale(self.tex_boulder, (52, 40))
+                    surface.blit(boulder_surf, (px - 26, scr_y - 40))
+                    
+        # 5. Slices: Roadway, Asphalt, Fiery Curbs, Road Markings
+        slice_h = 6
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
+            r_left, r_right = self.get_road_edges(6, world_y)
+            r_w = r_right - r_left
+            
+            # Heavy Rock-Guard Barrier
+            pygame.draw.rect(surface, (40, 25, 28), (r_left - 16.0, y, 16, slice_h))
+            pygame.draw.rect(surface, (40, 25, 28), (r_right, y, 16, slice_h))
+            
+            # Dark Basalt Asphalt Road Surface
+            pygame.draw.rect(surface, (34, 32, 36), (r_left, y, r_w, slice_h))
+            
+            # Dashed Lane Dividers (Warm White / Pale Ember)
+            lane_w = r_w / 4.0
+            dash_cycle = (int(y + self.track_distance)) % 60
+            if dash_cycle < 30:
+                pygame.draw.rect(surface, (245, 235, 220), (r_left + lane_w - 1.5, y, 3, slice_h))
+                pygame.draw.rect(surface, (245, 235, 220), (r_left + lane_w * 3.0 - 1.5, y, 3, slice_h))
+                # Double Magma Gold Center Line
+                pygame.draw.rect(surface, (255, 175, 25), (r_left + lane_w * 2.0 - 3.0, y, 2, slice_h))
+                pygame.draw.rect(surface, (255, 175, 25), (r_left + lane_w * 2.0 + 1.0, y, 2, slice_h))
+                
+            # Fiery Neon Curbs (Alternating Vivid Magma Amber & Molten Red)
+            curb_cycle = (int(y + self.track_distance) // 18) % 2
+            curb_col = (255, 130, 20) if curb_cycle == 0 else (225, 40, 25)
+            pygame.draw.rect(surface, curb_col, (r_left - 8, y, 8, slice_h))
+            pygame.draw.rect(surface, curb_col, (r_right, y, 8, slice_h))
+            
+            # Glowing amber hazard reflectors along road edge every 40m
+            if int(world_y) % 40 < 6:
+                pygame.draw.rect(surface, (255, 195, 40), (r_left - 12, y + 1, 4, 4))
+                pygame.draw.rect(surface, (255, 195, 40), (r_right + 8, y + 1, 4, 4))
 
     def _render_finish_line(self, surface: pygame.Surface):
         scr_h = self.screen_height

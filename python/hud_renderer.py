@@ -300,7 +300,7 @@ class HudRenderer:
             "OPTIONS / AUDIO: [ESC] / [ENTER] / GAMEPAD [START]",
             "QUICK PAUSE: [P] / GAMEPAD [SELECT]",
             "QUIT TO DESKTOP: GAMEPAD [SELECT + START]",
-            "TARGET GOAL: 36,000 METERS ALL 5 STAGES"
+            "TARGET GOAL: 36,000 M // 6 TOTAL STAGES"
         ]
         for idx, line in enumerate(lines):
             txt_l = self.font_caption.render(line, True, (235, 245, 255))
@@ -612,14 +612,15 @@ class HudRenderer:
         import os
         surface_w = surface.get_width()
         surface_h = surface.get_height()
+        
         # 1. Full-screen dimmed backdrop
         dim_surf = pygame.Surface((surface_w, surface_h), pygame.SRCALPHA)
         dim_surf.fill((5, 10, 18, 225))
         surface.blit(dim_surf, (0, 0))
         
-        # 2. Centered Cyber Modal Dialog
-        w = 880
-        h = 540
+        # 2. Centered Cyber Modal Dialog (Expanded width for generous text padding)
+        w = 980
+        h = 560
         cx = surface_w // 2
         cy = surface_h // 2
         x = cx - (w // 2)
@@ -639,13 +640,31 @@ class HudRenderer:
         pygame.draw.line(surface, (0, 140, 210), (x + 30, y + 74), (x + w - 30, y + 74), 2)
         
         # Target info badge
-        t_cur_ver = self.font_caption.render(f"INSTALLED: v{update_mgr.current_version}   |   TARGET: {os.path.basename(update_mgr.target_path)}", True, (180, 215, 245))
+        tgt_base = os.path.basename(update_mgr.target_path) if update_mgr.target_path else "Hiragana_Road_Fighter-x86_64.AppImage"
+        if len(tgt_base) > 36:
+            tgt_base = tgt_base[:33] + "..."
+        t_cur_ver = self.font_caption.render(f"INSTALLED: v{update_mgr.current_version}   |   TARGET: {tgt_base}", True, (180, 215, 245))
         surface.blit(t_cur_ver, t_cur_ver.get_rect(center=(cx, y + 98)))
         
+        def wrap_text(fnt: pygame.font.Font, txt: str, max_px: int) -> list[str]:
+            words = txt.split()
+            out_lines = []
+            cur_words = []
+            for word in words:
+                test_str = " ".join(cur_words + [word])
+                if fnt.size(test_str)[0] <= max_px:
+                    cur_words.append(word)
+                else:
+                    if cur_words:
+                        out_lines.append(" ".join(cur_words))
+                    cur_words = [word]
+            if cur_words:
+                out_lines.append(" ".join(cur_words))
+            return out_lines
+
         state = update_mgr.state
         
         if state == update_mgr.STATE_CHECKING:
-            # Animated dots
             dots = "." * (int(time.time() * 3) % 4)
             t_spin = self.font_menu.render(f"CONNECTING TO GITHUB{dots}", True, COLOR_CYAN)
             surface.blit(t_spin, t_spin.get_rect(center=(cx, cy - 25)))
@@ -653,13 +672,11 @@ class HudRenderer:
             t_sub = self.font_sub.render("Checking repository for new updates...", True, (200, 225, 250))
             surface.blit(t_sub, t_sub.get_rect(center=(cx, cy + 25)))
             
-            # Pulsing activity bar
             pulse_x = int((math.sin(time.time() * 5.0) * 0.5 + 0.5) * (w - 240))
             pygame.draw.rect(surface, (15, 30, 50), (x + 120, cy + 70, w - 240, 10), border_radius=5)
             pygame.draw.rect(surface, (0, 220, 255), (x + 120 + pulse_x, cy + 70, 60, 10), border_radius=5)
             
         elif state == update_mgr.STATE_UP_TO_DATE:
-            # Up to date notice
             t_icon = self.font_speed.render("✓", True, (60, 220, 120))
             surface.blit(t_icon, t_icon.get_rect(center=(cx, cy - 65)))
             
@@ -672,44 +689,43 @@ class HudRenderer:
             t_sub = self.font_caption.render("No new updates found in the GitHub repository.", True, (180, 210, 240))
             surface.blit(t_sub, t_sub.get_rect(center=(cx, cy + 68)))
             
-            # Button prompt
             t_btn = self.font_sub.render("PRESS [ENTER] / [A] / [START] / [B]: OK", True, COLOR_GOLD)
-            surface.blit(t_btn, t_btn.get_rect(center=(cx, y + h - 45)))
+            surface.blit(t_btn, t_btn.get_rect(center=(cx, y + h - 42)))
             
         elif state == update_mgr.STATE_UPDATE_AVAILABLE:
             t_star = self.font_menu.render("★ NEW UPDATE AVAILABLE! ★", True, COLOR_GOLD)
-            surface.blit(t_star, t_star.get_rect(center=(cx, cy - 90)))
+            surface.blit(t_star, t_star.get_rect(center=(cx, cy - 95)))
             
-            t_ver = self.font_menu.render(f"LATEST VERSION: v{update_mgr.remote_version}", True, COLOR_CYAN)
-            surface.blit(t_ver, t_ver.get_rect(center=(cx, cy - 48)))
+            clean_ver = update_mgr.remote_version.lstrip("v") if update_mgr.remote_version else ""
+            t_ver = self.font_menu.render(f"LATEST VERSION: v{clean_ver}", True, COLOR_CYAN)
+            surface.blit(t_ver, t_ver.get_rect(center=(cx, cy - 52)))
             
-            # Changelog box
-            c_box = pygame.Rect(x + 50, cy - 18, w - 100, 105)
+            # Changelog box (fits neatly within modal)
+            c_box = pygame.Rect(x + 40, cy - 22, w - 80, 130)
             pygame.draw.rect(surface, (15, 26, 44), c_box, border_radius=8)
             pygame.draw.rect(surface, (0, 140, 215), c_box, 1, border_radius=8)
             
             t_ch_h = self.font_caption.render("WHAT'S NEW IN THIS UPDATE:", True, (180, 215, 245))
             surface.blit(t_ch_h, (c_box.left + 16, c_box.top + 10))
             
-            ch_text = update_mgr.changelog or "Bug fixes and performance enhancements."
-            if len(ch_text) > 85:
-                ch_text = ch_text[:82] + "..."
-            t_ch_body = self.font_sub.render(ch_text, True, COLOR_WHITE)
-            surface.blit(t_ch_body, (c_box.left + 16, c_box.top + 36))
+            ch_text = update_mgr.changelog or "Bug fixes, performance enhancements, and new content."
+            wrapped_lines = wrap_text(self.font_caption, ch_text, c_box.width - 32)
+            for idx, line in enumerate(wrapped_lines[:2]):
+                t_line = self.font_caption.render(line, True, COLOR_WHITE)
+                surface.blit(t_line, (c_box.left + 16, c_box.top + 36 + idx * 22))
             
-            t_safe = self.font_caption.render("✓ Safe In-Place Update: Preserves exact AppImage filename, location & Steam shortcuts.", True, (80, 230, 150))
-            surface.blit(t_safe, (c_box.left + 16, c_box.top + 72))
+            t_safe = self.font_caption.render("✓ Safe In-Place Update: Preserves AppImage filename & Steam shortcuts.", True, (80, 230, 150))
+            surface.blit(t_safe, (c_box.left + 16, c_box.top + c_box.height - 28))
             
-            # Action Buttons
-            t_prompt = self.font_sub.render("[A] / [START] / [ENTER]: DOWNLOAD & INSTALL NOW    |    [B] / [ESC]: CANCEL", True, COLOR_GOLD)
-            surface.blit(t_prompt, t_prompt.get_rect(center=(cx, y + h - 45)))
+            # Action Buttons Prompt (Clean width that never exceeds modal frame)
+            t_prompt = self.font_sub.render("[A] / [START] / [ENTER]: INSTALL NOW    |    [B] / [ESC]: CANCEL", True, COLOR_GOLD)
+            surface.blit(t_prompt, t_prompt.get_rect(center=(cx, y + h - 42)))
             
         elif state == update_mgr.STATE_DOWNLOADING:
             pct = update_mgr.progress_percent
             t_down = self.font_menu.render(f"DOWNLOADING UPDATE... {pct:.1f}%", True, COLOR_CYAN)
             surface.blit(t_down, t_down.get_rect(center=(cx, cy - 50)))
             
-            # Progress bar
             bar_w = w - 120
             bar_h = 26
             bar_x = x + 60
@@ -720,7 +736,6 @@ class HudRenderer:
                 pygame.draw.rect(surface, (0, 220, 255), (bar_x, bar_y, fill_w, bar_h), border_radius=6)
             pygame.draw.rect(surface, (0, 180, 240), (bar_x, bar_y, bar_w, bar_h), 2, border_radius=6)
             
-            # Download size stats
             mb_down = update_mgr.bytes_downloaded / (1024 * 1024)
             mb_tot = update_mgr.bytes_total / (1024 * 1024)
             t_bytes = self.font_sub.render(f"{mb_down:.1f} MB / {mb_tot:.1f} MB", True, (200, 225, 250))
@@ -739,15 +754,14 @@ class HudRenderer:
             t_msg = self.font_sub.render(f"Updated in-place to v{update_mgr.current_version}!", True, COLOR_WHITE)
             surface.blit(t_msg, t_msg.get_rect(center=(cx, cy + 18)))
             
-            t_sub = self.font_caption.render("The AppImage binary was replaced without altering filenames or paths.", True, (180, 210, 240))
+            t_sub = self.font_caption.render("The AppImage binary was updated without altering filenames or paths.", True, (180, 210, 240))
             surface.blit(t_sub, t_sub.get_rect(center=(cx, cy + 50)))
             
-            t_steam = self.font_caption.render("All Steam shortcuts, desktop entries, and scripts will launch this new version.", True, (80, 230, 150))
+            t_steam = self.font_caption.render("All Steam shortcuts, desktop launchers, and scripts will run this version.", True, (80, 230, 150))
             surface.blit(t_steam, t_steam.get_rect(center=(cx, cy + 76)))
             
-            # Button prompt
-            t_btn = self.font_sub.render("[A] / [START] / [ENTER]: RESTART GAME NOW    |    [B] / [ESC]: CLOSE", True, COLOR_GOLD)
-            surface.blit(t_btn, t_btn.get_rect(center=(cx, y + h - 45)))
+            t_btn = self.font_sub.render("[A] / [START] / [ENTER]: RESTART GAME    |    [B] / [ESC]: CLOSE", True, COLOR_GOLD)
+            surface.blit(t_btn, t_btn.get_rect(center=(cx, y + h - 42)))
             
         elif state == update_mgr.STATE_ERROR:
             t_icon = self.font_speed.render("⚠", True, (255, 75, 75))
@@ -757,13 +771,13 @@ class HudRenderer:
             surface.blit(t_title, t_title.get_rect(center=(cx, cy - 10)))
             
             err_msg = update_mgr.error_message or "Network connection error."
-            if len(err_msg) > 75:
-                err_msg = err_msg[:72] + "..."
-            t_msg = self.font_sub.render(err_msg, True, (255, 190, 190))
-            surface.blit(t_msg, t_msg.get_rect(center=(cx, cy + 35)))
+            err_lines = wrap_text(self.font_sub, err_msg, w - 100)
+            for idx, eline in enumerate(err_lines[:2]):
+                t_msg = self.font_sub.render(eline, True, (255, 190, 190))
+                surface.blit(t_msg, t_msg.get_rect(center=(cx, cy + 28 + idx * 24)))
             
             t_sub = self.font_caption.render("Please verify your internet connection and try again.", True, (180, 210, 240))
-            surface.blit(t_sub, t_sub.get_rect(center=(cx, cy + 68)))
+            surface.blit(t_sub, t_sub.get_rect(center=(cx, cy + 76)))
             
             t_btn = self.font_sub.render("PRESS [ENTER] / [A] / [B]: CLOSE", True, COLOR_GOLD)
-            surface.blit(t_btn, t_btn.get_rect(center=(cx, y + h - 45)))
+            surface.blit(t_btn, t_btn.get_rect(center=(cx, y + h - 42)))
