@@ -7,10 +7,14 @@
 set -e
 
 APPIMAGE="Hiragana_Road_Fighter-x86_64.AppImage"
-URL="https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/${APPIMAGE}"
+URL="https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/${APPIMAGE}"
+FALLBACK_URL="https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/${APPIMAGE}"
 
 echo "=== Downloading Hiragana Road Fighter AppImage ==="
-curl -L --progress-bar -o "${APPIMAGE}" "${URL}"
+if ! curl -L --progress-bar -f -o "${APPIMAGE}" "${URL}"; then
+    echo "Falling back to release asset..."
+    curl -L --progress-bar -f -o "${APPIMAGE}" "${FALLBACK_URL}"
+fi
 chmod +x "${APPIMAGE}"
 
 echo "=== Download complete! ==="

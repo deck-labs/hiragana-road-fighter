@@ -5,14 +5,37 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%2F%20SteamOS%20(Steam%20Deck)-orange.svg)](https://store.steampowered.com/steamdeck)
 [![Stages](https://img.shields.io/badge/Stages-5%20Courses%20(A%2C%20KA%2C%20SA%2C%20TA%2C%20NA)-brightgreen.svg)](#5-stages--hiragana-syllabus)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
+[![Download AppImage](https://img.shields.io/badge/Download-Latest%20AppImage-00C853?style=flat&logo=appimage&logoColor=white)](https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage)
 
 A retro Japanese Hiragana learning arcade racer built in Python (Pygame), inspired by Konami's arcade classic *Road Fighter*. Players master reading and recognizing Hiragana characters at adrenaline-pumping speeds of up to 240 KM/H!
+
+<div align="center">
+
+<a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APPIMAGE-v0.2.0%20(Linux%20%2F%20Steam%20Deck)-00C853?style=for-the-badge&logo=appimage&logoColor=white" height="46" alt="Download Latest AppImage">
+</a>
+
+<br>
+<sub><b>Standalone Linux Binary:</b> No installation required. Works directly with Steam / Steam Deck!</sub>
+
+</div>
 
 ---
 
 ## ⚡ Direct Download (Standalone AppImage)
 
 You do **not** need to install Python, dependencies, or compile code. You can download and launch the standalone Linux AppImage directly:
+
+<div align="center">
+
+<a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.2.0%20(Standalone%20x86__64)-00E676?style=for-the-badge&logo=linux&logoColor=black" height="48" alt="Download AppImage">
+</a>
+
+<br>
+<sub><b>Filename:</b> <code>Hiragana_Road_Fighter-x86_64.AppImage</code> | <b>Size:</b> ~41 MB | <b>Architecture:</b> x86_64 (Linux / Steam Deck)</sub>
+
+</div>
 
 ### 🚀 One-Line Terminal Shortcut (Download & Run)
 
@@ -25,7 +48,7 @@ curl -sSL https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main
 Or download manually:
 
 ```bash
-curl -LO https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage
+curl -L -o Hiragana_Road_Fighter-x86_64.AppImage https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/Hiragana_Road_Fighter-x86_64.AppImage
 chmod +x Hiragana_Road_Fighter-x86_64.AppImage
 ./Hiragana_Road_Fighter-x86_64.AppImage
 ```
