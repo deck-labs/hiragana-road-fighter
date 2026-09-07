@@ -1,28 +1,20 @@
 # Hiragana Road Fighter (ひらがな ロードファイター)
 
-[![Language](https://img.shields.io/badge/Language-C%2B%2B17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
-[![Framework](https://img.shields.io/badge/Library-SDL2%20%2F%20FreeType2-brightgreen.svg)](https://libsdl.org/)
+[![Language](https://img.shields.io/badge/Language-Python%203.13-blue.svg)](https://www.python.org/)
+[![Engine](https://img.shields.io/badge/Engine-Pygame%202.6-yellow.svg)](https://www.pygame.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%2F%20SteamOS%20(Steam%20Deck)-orange.svg)](https://store.steampowered.com/steamdeck)
-[![Release](https://img.shields.io/badge/Release-v0.01-red.svg)](https://github.com/deck-labs/hiragana-road-fighter/releases)
+[![Stages](https://img.shields.io/badge/Stages-5%20Courses%20(A%2C%20KA%2C%20SA%2C%20TA%2C%20NA)-brightgreen.svg)](#5-stages--hiragana-syllabus)
+[![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 
-A retro Japanese Hiragana learning arcade racer built from scratch in C++ and SDL2, inspired by Konami's arcade classic *Road Fighter*. Players learn to read and recognize Hiragana at adrenaline-pumping speeds of up to 240 KM/H!
+A retro Japanese Hiragana learning arcade racer built in Python (Pygame), inspired by Konami's arcade classic *Road Fighter*. Players master reading and recognizing Hiragana characters at adrenaline-pumping speeds of up to 240 KM/H!
 
 ---
 
-## ⚡ Direct Download Shortcuts (AppImage Only)
+## ⚡ Direct Download (Standalone AppImage)
 
-You do **not** need to clone this repository, install dependencies, or compile source code. You can download and launch the standalone AppImage directly using any of these shortcuts:
+You do **not** need to install Python, dependencies, or compile code. You can download and launch the standalone Linux AppImage directly:
 
-### 🚀 Option 1: One-Click Browser Download
-
-[![Direct Download AppImage](https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-(17%20MB)-00c853?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage)
-
-| Download Target | Direct Shortcut Link | Description |
-| :--- | :--- | :--- |
-| **Direct AppImage Release** | [📥 **Download Hiragana Road Fighter AppImage**](https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage) | Standalone Linux executable (17 MB) |
-| **Repository File Link** | [📄 **Download from Repository**](https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage) | Raw direct download from Git tree |
-
-### 💻 Option 2: One-Line Terminal Shortcut (Auto Download & Run)
+### 🚀 One-Line Terminal Shortcut (Download & Run)
 
 Paste this single command into your terminal (Steam Deck Konsole, Arch, Ubuntu, Fedora) to download and launch immediately:
 
@@ -30,7 +22,7 @@ Paste this single command into your terminal (Steam Deck Konsole, Arch, Ubuntu, 
 curl -sSL https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/download.sh | bash
 ```
 
-Or download manually via `curl` / `wget`:
+Or download manually:
 
 ```bash
 curl -LO https://github.com/deck-labs/hiragana-road-fighter/releases/latest/download/Hiragana_Road_Fighter-x86_64.AppImage
@@ -40,108 +32,105 @@ chmod +x Hiragana_Road_Fighter-x86_64.AppImage
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
-| Stage 1: Forest Highway | Stage 2: Coastal Bridge |
+| Stage 1: Forest Highway (あいうえお) | Stage 2: Coastal Bridge (かきくけこ) |
 | :---: | :---: |
 | ![Stage 1](screenshots/hud_stage1.png) | ![Stage 2](screenshots/hud_stage2.png) |
 
-| Stage 3: Coastal Beach | Authentic NES Freeze-Frame Pause |
+| Stage 3: Coastal Beach (さしすせそ) | Stage 4: Mountain Pass (たちつてと) |
 | :---: | :---: |
-| ![Stage 3](screenshots/hud_stage3.png) | ![Pause Screen](screenshots/hud_pause.png) |
+| ![Stage 3](screenshots/hud_stage3.png) | ![Stage 4](screenshots/hud_stage4.png) |
+
+| Stage 5: Neon Metropolis (なにぬねの) | Authentic Freeze-Frame Pause |
+| :---: | :---: |
+| ![Stage 5](screenshots/hud_stage5.png) | ![Pause Screen](screenshots/hud_pause.png) |
 
 ---
 
-## Gameplay & Educational Mechanics
+## 🏎️ 5 Stages & Hiragana Syllabus
 
-1. **Read & Match**:
-   - Your red sports car features an illuminated pearl-white racing plate displaying your target **Japanese Hiragana** character.
-   - Traffic vehicles ahead bear **Romaji sounds** (e.g. `a`, `i`, `u`, `e`, `o`, `ka`, `ki`, etc.) on high-contrast white decal plates.
-   - Study your car's Hiragana and ram into the vehicle with the matching Romaji sound!
+All 5 stages feature an identical 36,000-meter course length with distinct environmental scenery, road curvature, and Hiragana character sets:
+
+| Stage | Theme | Hiragana Set | Romaji Sounds |
+| :--- | :--- | :---: | :--- |
+| **01** | **Forest Highway** | `あ` `い` `う` `え` `お` | `a`, `i`, `u`, `e`, `o` |
+| **02** | **Coastal Bridge** | `か` `き` `く` `け` `こ` | `ka`, `ki`, `ku`, `ke`, `ko` |
+| **03** | **Coastal Beach** | `さ` `し` `す` `せ` `そ` | `sa`, `shi`, `su`, `se`, `so` |
+| **04** | **Mountain Pass** | `た` `ち` `つ` `て` `と` | `ta`, `chi`, `tsu`, `te`, `to` |
+| **05** | **Neon Metropolis** | `な` `に` `ぬ` `ね` `の` | `na`, `ni`, `nu`, `ne`, `no` |
+
+---
+
+## 🎮 Gameplay Mechanics
+
+1. **Read & Intercept**:
+   - Your red sports car features an **illuminated pearl-white racing plate** displaying your target Japanese Hiragana character in bold crimson calligraphy.
+   - Traffic vehicles ahead bear **Romaji pronunciations** on high-contrast white decal plates framed in dark steel.
+   - Identify your car's target Hiragana and ram into the vehicle displaying the matching Romaji sound!
 2. **Refuel & Score**:
-   - **Correct Match**: Restores **+30% Fuel** and awards **+50 Points**, immediately advancing you to the next Kana in the syllabus.
-   - **Mismatched Collision**: Costs **-10% Fuel** and triggers a skid spinout!
+   - **Correct Match**: Restores **+30% Fuel** and awards **+50 Points**, immediately advancing to the next Kana in the syllabus.
+   - **Mismatched Collision**: Costs **-15% Fuel** and triggers an impact spinout wobble!
 3. **Survive & Clear**:
-   - Complete the 1.6 KM course before your fuel runs dry. Stage 1 takes place on a high-speed Forest Highway; Stage 2 takes you onto a narrow Coastal Bridge with dynamic road tapering.
+   - Complete the 36,000-meter course before your fuel runs out.
+   - Clearing Stage 5 triggers the grand victory screen (**"ALL STAGES CLEARED!"**) and returns to the Title Screen.
 
 ---
 
-## Modern AAA HUD & Cockpit Cluster
+## 🕹️ Controls
 
-- **Holographic Target Kana Scanner**: Displays your vehicle's active Hiragana in a dedicated **54px bold** holographic chamber with real-time collision feedback (`★ PERFECT MATCH! ★` vs `⚠ WRONG VEHICLE HIT! ⚠`) and combo streak tracking. *(Does not spoil the Romaji answer, preserving the learning challenge!)*
-- **Digital Instrument Cluster**:
-  - Ultra-bold 52px digital speedometer (`KM/H`).
-  - Dynamic drive-mode telemetry pill (`TURBO BOOST // HI`, `BRAKE // LOW`, `CRUISE // MID`, `! SPINOUT SKID !`).
-  - 24-segmented LED tachometer (cyan → yellow → pulsing redline).
-- **High-Voltage Power Cell**:
-  - 16 discrete LED battery cells that shift from emerald green (`>50%`) to yellow (`25-50%`) to a flashing red low-fuel alert (`<25%`).
-- **Left GPS Telemetry Rail**:
-  - Miniature vertical dual-rail highway corridor with checkpoint laser gates at 25%, 50%, and 75%.
-  - Player GPS sports car beacon with pulsing radar ring and forward headlights.
-  - Digital remaining distance telemetry readout.
-- **Display Auto-Detection**:
-  - Automatically detects maximum monitor/display resolution (FHD, QHD, 4K, Steam Deck 1280x800).
-  - Automatically computes and applies the optimal aspect ratio (16:10 for Steam Deck, 16:9 for HDTVs, 4:3 for CRT, 21:9 for ultrawide).
+The game includes universal gamepad support (Steam Deck, Xbox, 8BitDo, PlayStation, Nintendo Switch) and keyboard input:
 
----
-
-## Controls
-
-The game features full controller support (Steam Deck, Xbox, PlayStation, 8BitDo) and keyboard input:
-
-| Action | Controller | Keyboard |
+| Action | Controller / Gamepad | Keyboard |
 | :--- | :--- | :--- |
-| **Steer** | D-Pad / Left Analog Stick | Left / Right (or A / D) |
-| **Turbo Boost** | (A) / (B) / Up / RT | Up (or W) / Space |
-| **Brake / Drift** | (X) / (Y) / Down / LT | Down (or S) |
-| **Pause & Resume** | SELECT / START | ESC / P / Tab |
-| **Quick Quit** | SELECT + START (Simultaneously) | Q |
+| **Steer Left / Right** | D-Pad / Left Analog Stick | `Left` / `Right` or `A` / `D` |
+| **Turbo Boost (240 km/h)** | `(A)` / `(B)` / `RT` / `RB` | `Up` / `W` / `Space` |
+| **Brake / Slow** | `(X)` / `(Y)` / `LT` / `LB` | `Down` / `S` |
+| **Pause & Resume** | `SELECT` (`Back` / `View` / `Minus`) | `P` |
+| **Options / Audio Volume** | `START` (`Options` / `Plus` / `Menu`) | `ESC` / `Enter` |
+| **Quick Quit to Desktop** | `SELECT + START` (Simultaneously) | Gamepad combo |
+
+### Quality of Life & Polish
+* **Complete Audio Mute on Pause**: All engine sound loops, turbo whoosh, SFX, and music are completely silenced while paused.
+* **Idle Mouse Auto-Hide**: Mouse cursor auto-hides after 2 seconds of inactivity, with Steam Deck trackpad micro-jitter filtering.
+* **Pixel-Crisp Steering**: The player car remains strictly upright during lane shifts with zero sprite distortion. Smooth antialiased rotozoom is reserved exclusively for impact spinouts.
 
 ---
 
-## Download & Run (Standalone AppImage)
-
-A pre-packaged, standalone Linux AppImage is included directly in this repository and available via GitHub Releases:
-
-```bash
-# Make executable and launch
-chmod +x Hiragana_Road_Fighter-x86_64.AppImage
-./Hiragana_Road_Fighter-x86_64.AppImage
-```
-
-The AppImage bundles all required shared libraries (`libSDL2`, `libfreetype`, `libharfbuzz`, `libpng`) and Japanese Noto CJK Bold fonts. It runs on any modern 64-bit Linux distribution including SteamOS, Arch Linux, Ubuntu, Fedora, Debian, and openSUSE.
-
----
-
-## Building from Source
+## 💻 Running from Source
 
 ### Prerequisites
-- GCC / G++ supporting C++17
-- SDL2 development headers (`libsdl2-dev` or `sdl2`)
-- FreeType2 development headers (`libfreetype6-dev` or `freetype2`)
+- Python 3.10+
+- Pygame (`pip install pygame`)
 
-### Build Steps
+### Launching:
 ```bash
 # 1. Clone repository
 git clone https://github.com/deck-labs/hiragana-road-fighter.git
 cd hiragana-road-fighter
 
-# 2. Build C++ binary
-cd cpp
-./build.sh
+# 2. Install Pygame
+pip install pygame
 
-# 3. Run game
-./road_fighter_cpp
-```
-
-### Packaging AppImage
-To rebuild the standalone AppImage:
-```bash
-./build_appimage.sh
+# 3. Launch game
+./run.sh
+# (Or: python3 python/main.py)
 ```
 
 ---
 
-## License
+## 📦 Building the Standalone AppImage
+
+To package a standalone, dependency-free Linux AppImage:
+
+```bash
+./build_appimage.sh
+```
+
+This compiles the Python codebase using PyInstaller, bundles all assets, generates a 256x256 icon, and packages a portable `x86_64` AppImage that runs on any modern Linux distribution without requiring Python or system libraries.
+
+---
+
+## 📜 License
 
 MIT License. Open source and free for educational and personal use.

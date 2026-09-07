@@ -1,8 +1,16 @@
-# Compiled binaries & objects
-cpp/road_fighter_cpp
-*.o
+# Python bytecode & caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+build/
+dist/
 
-# Temporary files & screenshots
+# Unrelated workspace experiments
+street_fighter/
+run_sf2.sh
+
+# Temporary files & OS files
 *.bmp
 /tmp/
 .DS_Store
