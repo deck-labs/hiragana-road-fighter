@@ -12,7 +12,7 @@ A retro Japanese Hiragana learning arcade racer built in Python (Pygame), inspir
 <div align="center">
 
 <a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
-  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APPIMAGE-v0.2.0%20(Linux%20%2F%20Steam%20Deck)-00C853?style=for-the-badge&logo=appimage&logoColor=white" height="46" alt="Download Latest AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APPIMAGE-v0.2.1%20(Linux%20%2F%20Steam%20Deck)-00C853?style=for-the-badge&logo=appimage&logoColor=white" height="46" alt="Download Latest AppImage">
 </a>
 
 <br>
@@ -29,7 +29,7 @@ You do **not** need to install Python, dependencies, or compile code. You can do
 <div align="center">
 
 <a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
-  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.2.0%20(Standalone%20x86__64)-00E676?style=for-the-badge&logo=linux&logoColor=black" height="48" alt="Download AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.2.1%20(Standalone%20x86__64)-00E676?style=for-the-badge&logo=linux&logoColor=black" height="48" alt="Download AppImage">
 </a>
 
 <br>
@@ -114,6 +114,7 @@ The game includes universal gamepad support (Steam Deck, Xbox, 8BitDo, PlayStati
 | **Quick Quit to Desktop** | `SELECT + START` (Simultaneously) | Gamepad combo |
 
 ### Quality of Life & Polish
+* **Auto-Resolution & Adaptive Aspect Ratio**: Automatically detects the maximum native resolution supported by your display hardware (including Steam Deck 1280x800 native, 1080p, 1440p, 4K UHD, and 21:9 Ultrawide). Renders to an internal high-definition 1080p virtual canvas with adaptive aspect ratio preservation (letterboxing/pillarboxing with sleek cockpit bezels) or full stretch, toggleable on-the-fly in the in-game Options menu (`AUTO (PRESERVE)` vs `FULL (STRETCH)`). Mouse and touch coordinates automatically translate to virtual coordinates.
 * **In-Game Online System Updater**: Check for updates directly from the Title Screen. Safely updates the AppImage in-place without altering file paths or filenames, guaranteeing that Steam shortcuts, desktop launchers, and scripts never break.
 * **Complete Audio Mute on Pause**: All engine sound loops, turbo whoosh, SFX, and music are completely silenced while paused.
 * **Idle Mouse Auto-Hide**: Mouse cursor auto-hides after 2 seconds of inactivity, with Steam Deck trackpad micro-jitter filtering.

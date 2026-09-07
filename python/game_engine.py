@@ -7,10 +7,11 @@ import sys
 import random
 import pygame
 from game_config import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, TARGET_FPS, GAME_X, GAME_W, ROAD_MARGIN,
-    STAGE_TRACK_LENGTH, GAME_SPEED_SCALE, MAX_FUEL, FUEL_REWARD, FUEL_PENALTY,
-    SCORE_REWARD, TOTAL_STAGES, STAGE_KANA, TRAFFIC_COLORS,
-    COLOR_BG, get_asset_path
+    SCREEN_WIDTH, SCREEN_HEIGHT, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, TARGET_FPS,
+    GAME_X, GAME_W, ROAD_MARGIN, STAGE_TRACK_LENGTH, GAME_SPEED_SCALE,
+    MAX_FUEL, FUEL_REWARD, FUEL_PENALTY, SCORE_REWARD, TOTAL_STAGES,
+    STAGE_KANA, TRAFFIC_COLORS, COLOR_BG, COLOR_BEZEL,
+    compute_aspect_ratio, get_asset_path
 )
 from audio_system import AudioSystem
 from road_renderer import RoadRenderer
@@ -20,10 +21,26 @@ from update_manager import UpdateManager
 
 class GameEngine:
     def __init__(self, start_stage: int = 1, skip_title: bool = False, custom_dist: float = 0.0,
-                 start_paused: bool = False, start_menu: bool = False, start_stageclear: bool = False):
+                 start_paused: bool = False, start_menu: bool = False, start_stageclear: bool = False,
+                 detected_res: tuple[int, int] | None = None, aspect_mode: str = "auto"):
         self.screen = pygame.display.get_surface()
         self.clock = pygame.time.Clock()
         self.running = True
+        
+        # Virtual Canvas (Fixed high-definition internal resolution)
+        self.virtual_screen = pygame.Surface((VIRTUAL_WIDTH, VIRTUAL_HEIGHT))
+        
+        # Display & Viewport Geometry
+        win_size = self.screen.get_size() if self.screen else (VIRTUAL_WIDTH, VIRTUAL_HEIGHT)
+        self.detected_res = detected_res if detected_res else win_size
+        self.aspect_ratio_num, self.detected_aspect_label = compute_aspect_ratio(*self.detected_res)
+        self.aspect_mode = aspect_mode # "auto" or "stretch"
+        
+        self._last_win_w = 0
+        self._last_win_h = 0
+        self._last_aspect_mode = ""
+        self.dst_rect = pygame.Rect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT)
+        self.scaled_surf = None
         
         # Audio & Renderers
         self.audio = AudioSystem()
@@ -241,7 +258,7 @@ class GameEngine:
         if self.is_update_dialog_open:
             return
         if self.is_volume_menu_open:
-            self.volume_selected_index = (self.volume_selected_index - 1 + 4) % 4
+            self.volume_selected_index = (self.volume_selected_index - 1 + 5) % 5
             self.audio.play_pause()
         elif self.is_title_screen:
             self.title_menu_index = (self.title_menu_index - 1 + 4) % 4
@@ -251,7 +268,7 @@ class GameEngine:
         if self.is_update_dialog_open:
             return
         if self.is_volume_menu_open:
-            self.volume_selected_index = (self.volume_selected_index + 1) % 4
+            self.volume_selected_index = (self.volume_selected_index + 1) % 5
             self.audio.play_pause()
         elif self.is_title_screen:
             self.title_menu_index = (self.title_menu_index + 1) % 4
@@ -261,7 +278,10 @@ class GameEngine:
         if self.is_update_dialog_open:
             return
         if self.is_volume_menu_open:
-            self.adjust_volume(-0.05)
+            if self.volume_selected_index == 3:
+                self.toggle_aspect_mode()
+            elif self.volume_selected_index < 3:
+                self.adjust_volume(-0.05)
         elif self.is_title_screen and self.title_menu_index == 1:
             self.selected_stage = (self.selected_stage - 2 + TOTAL_STAGES) % TOTAL_STAGES + 1
             self.current_stage = self.selected_stage
@@ -272,12 +292,85 @@ class GameEngine:
         if self.is_update_dialog_open:
             return
         if self.is_volume_menu_open:
-            self.adjust_volume(0.05)
+            if self.volume_selected_index == 3:
+                self.toggle_aspect_mode()
+            elif self.volume_selected_index < 3:
+                self.adjust_volume(0.05)
         elif self.is_title_screen and self.title_menu_index == 1:
             self.selected_stage = (self.selected_stage % TOTAL_STAGES) + 1
             self.current_stage = self.selected_stage
             self.road.current_stage = self.selected_stage
             self.audio.play_pause()
+
+    def get_aspect_mode_label(self) -> str:
+        if self.aspect_mode == "stretch":
+            return "FULL (STRETCH)"
+        return f"AUTO ({self.detected_aspect_label.split()[0]})"
+
+    def toggle_aspect_mode(self):
+        self.aspect_mode = "stretch" if self.aspect_mode == "auto" else "auto"
+        self.audio.play_match()
+
+    def _update_viewport_geometry(self):
+        win_w, win_h = self.screen.get_size()
+        if (win_w, win_h) == (self._last_win_w, self._last_win_h) and self._last_aspect_mode == self.aspect_mode:
+            return
+
+        self._last_win_w, self._last_win_h = win_w, win_h
+        self._last_aspect_mode = self.aspect_mode
+
+        if self.aspect_mode == "stretch":
+            draw_w, draw_h = win_w, win_h
+            dst_x, dst_y = 0, 0
+        else:
+            # AUTO: preserve optimal 16:9 aspect ratio
+            target_ratio = VIRTUAL_WIDTH / VIRTUAL_HEIGHT
+            win_ratio = win_w / win_h
+            if win_ratio > target_ratio:
+                # Wider (pillarbox)
+                draw_h = win_h
+                draw_w = int(win_h * target_ratio)
+                dst_x = (win_w - draw_w) // 2
+                dst_y = 0
+            else:
+                # Taller (letterbox)
+                draw_w = win_w
+                draw_h = int(win_w / target_ratio)
+                dst_x = 0
+                dst_y = (win_h - draw_h) // 2
+
+        self.dst_rect = pygame.Rect(dst_x, dst_y, draw_w, draw_h)
+        if (draw_w, draw_h) != (VIRTUAL_WIDTH, VIRTUAL_HEIGHT):
+            self.scaled_surf = pygame.Surface((draw_w, draw_h))
+        else:
+            self.scaled_surf = None
+
+    def _present_to_screen(self):
+        self._update_viewport_geometry()
+        win_w, win_h = self.screen.get_size()
+
+        if self.dst_rect.size == (VIRTUAL_WIDTH, VIRTUAL_HEIGHT):
+            if self.dst_rect.topleft == (0, 0):
+                self.screen.blit(self.virtual_screen, (0, 0))
+            else:
+                self.screen.fill(COLOR_BEZEL)
+                self.screen.blit(self.virtual_screen, (self.dst_rect.x, self.dst_rect.y))
+        else:
+            if self.dst_rect.x > 0 or self.dst_rect.y > 0 or self.dst_rect.w < win_w or self.dst_rect.h < win_h:
+                self.screen.fill(COLOR_BEZEL)
+            if self.scaled_surf is None or self.scaled_surf.get_size() != (self.dst_rect.w, self.dst_rect.h):
+                self.scaled_surf = pygame.Surface((self.dst_rect.w, self.dst_rect.h))
+            pygame.transform.scale(self.virtual_screen, (self.dst_rect.w, self.dst_rect.h), self.scaled_surf)
+            self.screen.blit(self.scaled_surf, (self.dst_rect.x, self.dst_rect.y))
+
+    def window_to_virtual_coords(self, mx: int, my: int) -> tuple[int, int]:
+        if not hasattr(self, 'dst_rect') or self.dst_rect.w <= 0 or self.dst_rect.h <= 0:
+            return mx, my
+        rel_x = mx - self.dst_rect.x
+        rel_y = my - self.dst_rect.y
+        vx = int(rel_x * (VIRTUAL_WIDTH / self.dst_rect.w))
+        vy = int(rel_y * (VIRTUAL_HEIGHT / self.dst_rect.h))
+        return vx, vy
 
     def open_update_dialog(self):
         self.is_update_dialog_open = True
@@ -302,9 +395,11 @@ class GameEngine:
             return
 
         if self.is_volume_menu_open:
-            if self.volume_selected_index == 3:
+            if self.volume_selected_index == 4:
                 self.toggle_volume_menu()
-            else:
+            elif self.volume_selected_index == 3:
+                self.toggle_aspect_mode()
+            elif self.volume_selected_index < 3:
                 self.adjust_volume(0.05)
         elif self.is_title_screen:
             if self.title_menu_index == 0:
@@ -372,7 +467,7 @@ class GameEngine:
 
             # Mouse clicks in menus
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                mx, my = event.pos
+                mx, my = self.window_to_virtual_coords(*event.pos)
                 if self.is_update_dialog_open:
                     cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
                     modal_rect = pygame.Rect(cx - 420, cy - 250, 840, 500)
@@ -394,22 +489,27 @@ class GameEngine:
                     elif 690 <= my <= 745 and 600 <= mx <= 1320:
                         self.open_update_dialog()
                 elif self.is_volume_menu_open:
-                    cx = 960 if self.is_title_screen else 760
-                    bar_x = (cx - 320) + 32
-                    bar_w = 576
+                    cx = SCREEN_WIDTH // 2 if self.is_title_screen else 760
+                    w, h = 680, 530
+                    x = cx - (w // 2)
+                    bar_x = x + 40
+                    bar_w = w - 80
                     click_val = max(0.0, min(1.0, (mx - bar_x) / bar_w))
                     
-                    if 380 <= my <= 445:
+                    if 360 <= my <= 425:
                         self.volume_selected_index = 0
                         self.audio.set_master_volume(click_val)
-                    elif 460 <= my <= 525:
+                    elif 435 <= my <= 500:
                         self.volume_selected_index = 1
                         self.audio.set_engine_volume(click_val)
-                    elif 540 <= my <= 605:
+                    elif 510 <= my <= 575:
                         self.volume_selected_index = 2
                         self.audio.set_sfx_volume(click_val)
                         self.audio.play_match()
-                    elif 645 <= my <= 695 and (cx - 160) <= mx <= (cx + 160):
+                    elif 585 <= my <= 645 and (x + 30) <= mx <= (x + w - 30):
+                        self.volume_selected_index = 3
+                        self.toggle_aspect_mode()
+                    elif 685 <= my <= 745 and (cx - 160) <= mx <= (cx + 160):
                         self.toggle_volume_menu()
 
             # Keyboard Input
@@ -725,22 +825,22 @@ class GameEngine:
         self.audio.update_engine(self.player.speed_kmh, self.player.is_turbo)
 
     def render(self):
-        self.screen.fill(COLOR_BG)
+        self.virtual_screen.fill(COLOR_BG)
         
         # 1. Road & Environment
-        self.road.render(self.screen, self.current_stage, self.track_distance)
+        self.road.render(self.virtual_screen, self.current_stage, self.track_distance)
         
         # 2. Traffic Cars
         for car in self.traffic_cars:
-            car.render(self.screen)
+            car.render(self.virtual_screen)
             
         # 3. Player Car
-        self.player.render(self.screen)
+        self.player.render(self.virtual_screen)
         
         # 4. HUD Panels
-        self.hud.render_left_panel(self.screen, self.current_stage, self.track_distance, STAGE_TRACK_LENGTH)
+        self.hud.render_left_panel(self.virtual_screen, self.current_stage, self.track_distance, STAGE_TRACK_LENGTH)
         self.hud.render_right_panel(
-            self.screen, self.current_stage,
+            self.virtual_screen, self.current_stage,
             self.current_target_kana.get("kana", "あ"),
             self.current_target_kana.get("romaji", "a"),
             self.player.speed_kmh, self.player.is_turbo, self.player.is_braking,
@@ -749,22 +849,26 @@ class GameEngine:
         
         # 5. Overlays
         if self.is_title_screen:
-            self.hud.render_title_screen(self.screen, self.title_menu_index, self.selected_stage)
+            disp_info = f"{self.detected_res[0]}x{self.detected_res[1]} [{self.detected_aspect_label.split()[0]}]"
+            self.hud.render_title_screen(self.virtual_screen, self.title_menu_index, self.selected_stage, disp_info)
             if self.is_update_dialog_open:
-                self.hud.render_update_modal(self.screen, self.update_mgr)
+                self.hud.render_update_modal(self.virtual_screen, self.update_mgr)
             
         if self.is_volume_menu_open:
             self.hud.render_volume_menu(
-                self.screen, self.is_title_screen, self.volume_selected_index,
-                self.audio.master_volume, self.audio.engine_volume, self.audio.sfx_volume
+                self.virtual_screen, self.is_title_screen, self.volume_selected_index,
+                self.audio.master_volume, self.audio.engine_volume, self.audio.sfx_volume,
+                self.get_aspect_mode_label()
             )
         elif self.is_paused:
-            self.hud.render_pause_overlay(self.screen)
+            self.hud.render_pause_overlay(self.virtual_screen)
         elif self.is_stage_clear:
-            self.hud.render_stage_clear_overlay(self.screen, self.current_stage)
+            self.hud.render_stage_clear_overlay(self.virtual_screen, self.current_stage)
         elif self.is_game_over:
-            self.hud.render_game_over_overlay(self.screen)
+            self.hud.render_game_over_overlay(self.virtual_screen)
 
+        # 6. Presentation with Aspect-Ratio Adaptive Scaling
+        self._present_to_screen()
         pygame.display.flip()
 
     def run_frame(self, delta: float):

@@ -302,11 +302,11 @@ class HudRenderer:
             txt_l = self.font_tiny.render(line, True, (180, 205, 230))
             surface.blit(txt_l, (rx + 20, ctrl_y + 48 + idx * 34))
 
-    def render_title_screen(self, surface: pygame.Surface, menu_index: int, selected_stage: int):
+    def render_title_screen(self, surface: pygame.Surface, menu_index: int, selected_stage: int, display_info: str = ""):
         # Solid dark arcade canvas
         surface.fill((8, 12, 22))
         
-        # 1. Romanji Title with multi-layered retro shadow
+        # 1. Title Text with NES-style Chromatic Depth
         title_text = "HIRAGANA ROAD FIGHTER"
         title_y = 310
         
@@ -380,15 +380,21 @@ class HudRenderer:
         txt_ver = self.font_sub.render(f"v{GAME_VERSION}", True, (110, 140, 175))
         surface.blit(txt_ver, (SCREEN_WIDTH - 120, SCREEN_HEIGHT - 45))
 
+        # Display Mode Badge (Bottom-Left)
+        if display_info:
+            txt_disp = self.font_tiny.render(f"DISPLAY: {display_info}", True, (110, 140, 175))
+            surface.blit(txt_disp, (40, SCREEN_HEIGHT - 45))
+
         # Footer
-        txt_foot = self.font_tiny.render("▲/▼ NAVIGATE   ◀/▶ STAGE SELECT   [ENTER] / [A] / [START]: SELECT   [SELECT + START]: QUIT", True, (140, 175, 210))
+        txt_foot = self.font_tiny.render("▲/▼ NAVIGATE   ◀/▶ ADJUST   [ENTER] / [A] / [START]: SELECT   [SELECT + START]: QUIT", True, (140, 175, 210))
         surface.blit(txt_foot, txt_foot.get_rect(center=(SCREEN_WIDTH // 2, 980)))
 
     def render_volume_menu(self, surface: pygame.Surface, is_title_screen: bool, selected_idx: int,
-                           master_vol: float, engine_vol: float, sfx_vol: float):
+                           master_vol: float, engine_vol: float, sfx_vol: float,
+                           aspect_ratio_label: str = "AUTO (PRESERVE)"):
         # Modal dialog centered
-        w = 640
-        h = 470
+        w = 680
+        h = 530
         cx = SCREEN_WIDTH // 2 if is_title_screen else 760
         cy = SCREEN_HEIGHT // 2
         x = cx - (w // 2)
@@ -404,20 +410,20 @@ class HudRenderer:
         pygame.draw.rect(surface, (15, 30, 50), (x + 3, y + 3, w - 6, h - 6), 1, border_radius=10)
         
         # Header title
-        title_str = "AUDIO VOLUME CONFIGURATION"
+        title_str = "GAME OPTIONS & CONFIGURATION"
         txt_title = self.font_menu.render(title_str, True, COLOR_GOLD)
-        surface.blit(txt_title, txt_title.get_rect(center=(cx, y + 42)))
-        pygame.draw.line(surface, (0, 120, 190), (x + 30, y + 75), (x + w - 30, y + 75), 2)
+        surface.blit(txt_title, txt_title.get_rect(center=(cx, y + 38)))
+        pygame.draw.line(surface, (0, 120, 190), (x + 30, y + 68), (x + w - 30, y + 68), 2)
         
-        # Sliders: 0: Master, 1: Engine, 2: SFX, 3: Back Button
+        # Sliders: 0: Master, 1: Engine, 2: SFX
         items = [
             ("MASTER VOLUME", master_vol, 0),
             ("ENGINE VOLUME", engine_vol, 1),
             ("SFX VOLUME", sfx_vol, 2)
         ]
         
-        start_sy = y + 110
-        spacing_s = 85
+        start_sy = y + 95
+        spacing_s = 75
         
         for name, vol, idx in items:
             sy = start_sy + idx * spacing_s
@@ -436,9 +442,9 @@ class HudRenderer:
             
             # Slider Track
             bx = x + 40
-            by = sy + 32
+            by = sy + 28
             bw = w - 80
-            bh = 18
+            bh = 16
             pygame.draw.rect(surface, (15, 25, 42), (bx, by, bw, bh), border_radius=4)
             fill_w = int(bw * max(0.0, min(1.0, vol)))
             if fill_w > 0:
@@ -448,14 +454,30 @@ class HudRenderer:
             
             # Slider thumb knob
             kx = bx + fill_w
-            pygame.draw.circle(surface, COLOR_GOLD if is_sel else COLOR_WHITE, (kx, by + bh // 2), 10)
-            pygame.draw.circle(surface, (20, 30, 45), (kx, by + bh // 2), 10, 2)
+            pygame.draw.circle(surface, COLOR_GOLD if is_sel else COLOR_WHITE, (kx, by + bh // 2), 9)
+            pygame.draw.circle(surface, (20, 30, 45), (kx, by + bh // 2), 9, 2)
             
-        # Item 3: Return / Close Button
-        btn_y = y + 365
-        btn_is_sel = (selected_idx == 3)
+        # Item 3: Aspect Ratio Selector
+        ar_y = start_sy + 3 * spacing_s
+        is_sel_ar = (selected_idx == 3)
+        ar_col = COLOR_GOLD if is_sel_ar else (180, 205, 230)
+        prefix_ar = "► " if is_sel_ar else "  "
+        txt_ar_lbl = self.font_sub.render(prefix_ar + "ASPECT RATIO", True, ar_col)
+        surface.blit(txt_ar_lbl, (x + 40, ar_y))
+
+        ar_box = pygame.Rect(x + 40, ar_y + 26, w - 80, 34)
+        pygame.draw.rect(surface, (15, 25, 42), ar_box, border_radius=6)
+        pygame.draw.rect(surface, COLOR_GOLD if is_sel_ar else (50, 85, 125), ar_box, 1, border_radius=6)
+
+        mode_str = f"◄  {aspect_ratio_label}  ►" if is_sel_ar else aspect_ratio_label
+        txt_mode = self.font_sub.render(mode_str, True, COLOR_CYAN if is_sel_ar else COLOR_WHITE)
+        surface.blit(txt_mode, txt_mode.get_rect(center=ar_box.center))
+
+        # Item 4: Return / Close Button
+        btn_y = y + 428
+        btn_is_sel = (selected_idx == 4)
         btn_bg = (0, 110, 180) if btn_is_sel else (20, 35, 55)
-        btn_rect = pygame.Rect(cx - 150, btn_y, 300, 42)
+        btn_rect = pygame.Rect(cx - 160, btn_y, 320, 40)
         pygame.draw.rect(surface, btn_bg, btn_rect, border_radius=6)
         pygame.draw.rect(surface, COLOR_GOLD if btn_is_sel else (40, 80, 120), btn_rect, 2, border_radius=6)
         
@@ -464,10 +486,10 @@ class HudRenderer:
         surface.blit(txt_b, txt_b.get_rect(center=btn_rect.center))
         
         # Navigation footer
-        pygame.draw.line(surface, (0, 90, 150), (x + 20, y + 418), (x + w - 20, y + 418), 1)
+        pygame.draw.line(surface, (0, 90, 150), (x + 20, y + 480), (x + w - 20, y + 480), 1)
         foot_str = "▲/▼ SELECT   ◀/▶ ADJUST   [ENTER] / [A]: CONFIRM   [B] / [START]: RESUME"
         txt_foot = self.font_tiny.render(foot_str, True, (140, 170, 200))
-        surface.blit(txt_foot, txt_foot.get_rect(center=(cx, y + 440)))
+        surface.blit(txt_foot, txt_foot.get_rect(center=(cx, y + 502)))
 
     def render_pause_overlay(self, surface: pygame.Surface):
         is_blink = (int(time.time() * 1000) // 350) % 2 == 0
