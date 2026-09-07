@@ -91,6 +91,7 @@ The game includes universal gamepad support (Steam Deck, Xbox, 8BitDo, PlayStati
 | **Quick Quit to Desktop** | `SELECT + START` (Simultaneously) | Gamepad combo |
 
 ### Quality of Life & Polish
+* **In-Game Online System Updater**: Check for updates directly from the Title Screen. Safely updates the AppImage in-place without altering file paths or filenames, guaranteeing that Steam shortcuts, desktop launchers, and scripts never break.
 * **Complete Audio Mute on Pause**: All engine sound loops, turbo whoosh, SFX, and music are completely silenced while paused.
 * **Idle Mouse Auto-Hide**: Mouse cursor auto-hides after 2 seconds of inactivity, with Steam Deck trackpad micro-jitter filtering.
 * **Pixel-Crisp Steering**: The player car remains strictly upright during lane shifts with zero sprite distortion. Smooth antialiased rotozoom is reserved exclusively for impact spinouts.

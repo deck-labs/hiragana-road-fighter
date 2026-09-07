@@ -16,6 +16,7 @@ from audio_system import AudioSystem
 from road_renderer import RoadRenderer
 from entities import PlayerCar, TrafficCar
 from hud_renderer import HudRenderer
+from update_manager import UpdateManager
 
 class GameEngine:
     def __init__(self, start_stage: int = 1, skip_title: bool = False, custom_dist: float = 0.0,
@@ -67,6 +68,10 @@ class GameEngine:
         self.is_paused = start_paused
         self.is_stage_clear = start_stageclear
         self.is_game_over = False
+        
+        # Auto-updater
+        self.update_mgr = UpdateManager()
+        self.is_update_dialog_open = False
         
         self.score = 0.0
         self.fuel = 100.0
@@ -163,6 +168,7 @@ class GameEngine:
         self.is_title_screen = True
         self.is_paused = False
         self.is_volume_menu_open = False
+        self.is_update_dialog_open = False
         self.is_stage_clear = False
         self.is_game_over = False
         self.stage_clear_timer = 0.0
@@ -232,22 +238,28 @@ class GameEngine:
         self.traffic_cars.append(car)
 
     def menu_up(self):
+        if self.is_update_dialog_open:
+            return
         if self.is_volume_menu_open:
             self.volume_selected_index = (self.volume_selected_index - 1 + 4) % 4
             self.audio.play_pause()
         elif self.is_title_screen:
-            self.title_menu_index = (self.title_menu_index - 1 + 3) % 3
+            self.title_menu_index = (self.title_menu_index - 1 + 4) % 4
             self.audio.play_pause()
 
     def menu_down(self):
+        if self.is_update_dialog_open:
+            return
         if self.is_volume_menu_open:
             self.volume_selected_index = (self.volume_selected_index + 1) % 4
             self.audio.play_pause()
         elif self.is_title_screen:
-            self.title_menu_index = (self.title_menu_index + 1) % 3
+            self.title_menu_index = (self.title_menu_index + 1) % 4
             self.audio.play_pause()
 
     def menu_left(self):
+        if self.is_update_dialog_open:
+            return
         if self.is_volume_menu_open:
             self.adjust_volume(-0.05)
         elif self.is_title_screen and self.title_menu_index == 1:
@@ -257,6 +269,8 @@ class GameEngine:
             self.audio.play_pause()
 
     def menu_right(self):
+        if self.is_update_dialog_open:
+            return
         if self.is_volume_menu_open:
             self.adjust_volume(0.05)
         elif self.is_title_screen and self.title_menu_index == 1:
@@ -265,7 +279,28 @@ class GameEngine:
             self.road.current_stage = self.selected_stage
             self.audio.play_pause()
 
+    def open_update_dialog(self):
+        self.is_update_dialog_open = True
+        self.audio.play_match()
+        self.update_mgr.check_for_updates()
+
+    def close_update_dialog(self):
+        if self.update_mgr.state != UpdateManager.STATE_DOWNLOADING:
+            self.is_update_dialog_open = False
+            self.audio.play_pause()
+
     def menu_confirm(self):
+        if self.is_update_dialog_open:
+            state = self.update_mgr.state
+            if state == UpdateManager.STATE_UPDATE_AVAILABLE:
+                self.audio.play_match()
+                self.update_mgr.start_download()
+            elif state == UpdateManager.STATE_SUCCESS:
+                self.update_mgr.restart_game()
+            elif state in (UpdateManager.STATE_UP_TO_DATE, UpdateManager.STATE_ERROR):
+                self.close_update_dialog()
+            return
+
         if self.is_volume_menu_open:
             if self.volume_selected_index == 3:
                 self.toggle_volume_menu()
@@ -281,6 +316,8 @@ class GameEngine:
                 self.audio.play_pause()
             elif self.title_menu_index == 2:
                 self.toggle_volume_menu()
+            elif self.title_menu_index == 3:
+                self.open_update_dialog()
         elif self.is_stage_clear:
             if self.current_stage == TOTAL_STAGES:
                 self.return_to_title()
@@ -290,6 +327,9 @@ class GameEngine:
             self.start_stage(self.current_stage, keep_fuel=False)
 
     def menu_back(self):
+        if self.is_update_dialog_open:
+            self.close_update_dialog()
+            return
         if self.is_volume_menu_open:
             self.toggle_volume_menu()
         elif self.is_title_screen:
@@ -333,16 +373,26 @@ class GameEngine:
             # Mouse clicks in menus
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
-                if self.is_title_screen and not self.is_volume_menu_open:
-                    if 505 <= my <= 555 and 600 <= mx <= 1320:
+                if self.is_update_dialog_open:
+                    cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
+                    modal_rect = pygame.Rect(cx - 420, cy - 250, 840, 500)
+                    btn_rect = pygame.Rect(cx - 300, cy + 190, 600, 55)
+                    if btn_rect.collidepoint(mx, my):
+                        self.menu_confirm()
+                    elif not modal_rect.collidepoint(mx, my):
+                        self.close_update_dialog()
+                elif self.is_title_screen and not self.is_volume_menu_open:
+                    if 495 <= my <= 545 and 600 <= mx <= 1320:
                         self.start_game_from_title()
-                    elif 580 <= my <= 630 and 420 <= mx <= 1500:
+                    elif 560 <= my <= 610 and 420 <= mx <= 1500:
                         if mx < 960:
                             self.menu_left()
                         else:
                             self.menu_right()
-                    elif 655 <= my <= 705 and 600 <= mx <= 1320:
+                    elif 625 <= my <= 675 and 600 <= mx <= 1320:
                         self.toggle_volume_menu()
+                    elif 690 <= my <= 745 and 600 <= mx <= 1320:
+                        self.open_update_dialog()
                 elif self.is_volume_menu_open:
                     cx = 960 if self.is_title_screen else 760
                     bar_x = (cx - 320) + 32
@@ -381,7 +431,7 @@ class GameEngine:
                         self.toggle_pause()
                     continue
 
-                if self.is_title_screen or self.is_volume_menu_open:
+                if self.is_title_screen or self.is_volume_menu_open or self.is_update_dialog_open:
                     if event.key in (pygame.K_UP, pygame.K_w):
                         self.menu_up()
                     elif event.key in (pygame.K_DOWN, pygame.K_s):
@@ -427,7 +477,7 @@ class GameEngine:
 
             # Gamepad Analog Sticks in menus (with debounce threshold)
             if event.type == pygame.JOYAXISMOTION:
-                if self.is_title_screen or self.is_volume_menu_open:
+                if self.is_title_screen or self.is_volume_menu_open or self.is_update_dialog_open:
                     if event.axis == 1: # Left stick Y
                         if event.value < -0.55 and self.stick_y_released:
                             self.menu_up()
@@ -459,9 +509,11 @@ class GameEngine:
                 # START buttons: 7, 9, 11
                 # A: 0, B: 1, X: 2, Y: 3
 
-                # SELECT Button: Pause / Unpause toggle
+                # SELECT Button: Pause / Unpause toggle or close modal
                 if btn in (4, 6, 8, 10):
-                    if self.is_volume_menu_open:
+                    if self.is_update_dialog_open:
+                        self.close_update_dialog()
+                    elif self.is_volume_menu_open:
                         self.toggle_volume_menu()
                     elif self.is_paused:
                         self.toggle_pause() # Unpause
@@ -475,8 +527,8 @@ class GameEngine:
                         self.toggle_pause()
                     continue
 
-                # Menus (Title screen or Volume settings modal)
-                if self.is_title_screen or self.is_volume_menu_open:
+                # Menus (Title screen, Volume settings modal, Update modal)
+                if self.is_title_screen or self.is_volume_menu_open or self.is_update_dialog_open:
                     if btn in (0, 7, 9, 11): # A or Start to Confirm
                         self.menu_confirm()
                     elif btn in (1, 2): # B or X to Back
@@ -513,7 +565,7 @@ class GameEngine:
                 pygame.mouse.set_visible(False)
                 self.mouse_idle_timer = 0.0
 
-        if self.is_title_screen or self.is_volume_menu_open or self.is_paused:
+        if self.is_title_screen or self.is_volume_menu_open or self.is_paused or self.is_update_dialog_open:
             return
 
         if self.is_stage_clear:
@@ -698,6 +750,8 @@ class GameEngine:
         # 5. Overlays
         if self.is_title_screen:
             self.hud.render_title_screen(self.screen, self.title_menu_index, self.selected_stage)
+            if self.is_update_dialog_open:
+                self.hud.render_update_modal(self.screen, self.update_mgr)
             
         if self.is_volume_menu_open:
             self.hud.render_volume_menu(
