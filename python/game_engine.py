@@ -216,6 +216,9 @@ class GameEngine:
         if self.is_volume_menu_open:
             self.is_paused = False
             self.audio.update_engine(0.0, False)
+            max_opts = 6 if not self.is_title_screen else 5
+            if self.volume_selected_index >= max_opts:
+                self.volume_selected_index = 0
         else:
             if not self.is_title_screen:
                 self.audio.update_engine(self.player.speed_kmh, self.player.is_turbo)
@@ -262,7 +265,8 @@ class GameEngine:
         if self.is_update_dialog_open:
             return
         if self.is_volume_menu_open:
-            self.volume_selected_index = (self.volume_selected_index - 1 + 5) % 5
+            max_opts = 6 if not self.is_title_screen else 5
+            self.volume_selected_index = (self.volume_selected_index - 1 + max_opts) % max_opts
             self.audio.play_pause()
         elif self.is_title_screen:
             self.title_menu_index = (self.title_menu_index - 1 + 4) % 4
@@ -272,7 +276,8 @@ class GameEngine:
         if self.is_update_dialog_open:
             return
         if self.is_volume_menu_open:
-            self.volume_selected_index = (self.volume_selected_index + 1) % 5
+            max_opts = 6 if not self.is_title_screen else 5
+            self.volume_selected_index = (self.volume_selected_index + 1) % max_opts
             self.audio.play_pause()
         elif self.is_title_screen:
             self.title_menu_index = (self.title_menu_index + 1) % 4
@@ -413,12 +418,23 @@ class GameEngine:
             return
 
         if self.is_volume_menu_open:
-            if self.volume_selected_index == 4:
-                self.toggle_volume_menu()
-            elif self.volume_selected_index == 3:
-                self.toggle_aspect_mode()
-            elif self.volume_selected_index < 3:
-                self.adjust_volume(0.05)
+            if not self.is_title_screen:
+                if self.volume_selected_index == 4:
+                    self.toggle_volume_menu()
+                elif self.volume_selected_index == 5:
+                    self.return_to_title()
+                elif self.volume_selected_index == 3:
+                    self.toggle_aspect_mode()
+                elif self.volume_selected_index < 3:
+                    self.adjust_volume(0.05)
+            else:
+                if self.volume_selected_index == 4:
+                    self.toggle_volume_menu()
+                elif self.volume_selected_index == 3:
+                    self.toggle_aspect_mode()
+                elif self.volume_selected_index < 3:
+                    self.adjust_volume(0.05)
+            return
         elif self.is_title_screen:
             if self.title_menu_index == 0:
                 self.start_game_from_title()
@@ -513,37 +529,48 @@ class GameEngine:
                 elif self.is_volume_menu_open:
                     cx = self.virtual_width // 2 if self.is_title_screen else 760
                     cy = self.virtual_height // 2
-                    w, h = 680, 530
+                    w, h = 780, 600
                     x = cx - (w // 2)
                     y = cy - (h // 2)
-                    start_sy = y + 95
-                    spacing_s = 75
+                    start_sy = y + 92
+                    spacing_s = 72
                     
-                    bar_x = x + 40
-                    bar_w = w - 80
+                    bar_x = x + 45
+                    bar_w = w - 90
                     click_val = max(0.0, min(1.0, (mx - bar_x) / bar_w))
                     
                     s0_y = start_sy
                     s1_y = start_sy + spacing_s
                     s2_y = start_sy + spacing_s * 2
                     ar_y = start_sy + spacing_s * 3
-                    btn_y = y + 428
                     
-                    if (s0_y - 10) <= my <= (s0_y + 55):
+                    if (s0_y - 10) <= my <= (s0_y + 55) and (x + 35) <= mx <= (x + w - 35):
                         self.volume_selected_index = 0
                         self.audio.set_master_volume(click_val)
-                    elif (s1_y - 10) <= my <= (s1_y + 55):
+                    elif (s1_y - 10) <= my <= (s1_y + 55) and (x + 35) <= mx <= (x + w - 35):
                         self.volume_selected_index = 1
                         self.audio.set_engine_volume(click_val)
-                    elif (s2_y - 10) <= my <= (s2_y + 55):
+                    elif (s2_y - 10) <= my <= (s2_y + 55) and (x + 35) <= mx <= (x + w - 35):
                         self.volume_selected_index = 2
                         self.audio.set_sfx_volume(click_val)
                         self.audio.play_match()
-                    elif (ar_y - 10) <= my <= (ar_y + 55) and (x + 30) <= mx <= (x + w - 30):
+                    elif (ar_y - 10) <= my <= (ar_y + 65) and (x + 35) <= mx <= (x + w - 35):
                         self.volume_selected_index = 3
                         self.toggle_aspect_mode()
-                    elif (btn_y - 10) <= my <= (btn_y + 50) and (cx - 160) <= mx <= (cx + 160):
-                        self.toggle_volume_menu()
+                    elif not self.is_title_screen:
+                        btn1_y = y + 404
+                        btn2_y = y + 462
+                        if (btn1_y - 6) <= my <= (btn1_y + 52) and (cx - 215) <= mx <= (cx + 215):
+                            self.volume_selected_index = 4
+                            self.toggle_volume_menu()
+                        elif (btn2_y - 6) <= my <= (btn2_y + 52) and (cx - 215) <= mx <= (cx + 215):
+                            self.volume_selected_index = 5
+                            self.return_to_title()
+                    else:
+                        btn_y = y + 430
+                        if (btn_y - 6) <= my <= (btn_y + 56) and (cx - 215) <= mx <= (cx + 215):
+                            self.volume_selected_index = 4
+                            self.toggle_volume_menu()
 
             # Keyboard Input
             if event.type == pygame.KEYDOWN:
