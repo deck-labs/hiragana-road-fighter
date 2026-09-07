@@ -66,22 +66,26 @@ class PlayerCar:
             self.composite_sprite = self._build_composite_sprite()
 
     def handle_input(self, steer_axis: float, turbo_down: bool, brake_down: bool, delta: float):
+        # Turbo takes precedence over brake to prevent accidental or phantom brake locking
+        if turbo_down and brake_down:
+            brake_down = False
+
         self.is_turbo = turbo_down
         self.is_braking = brake_down
         
         # Acceleration / Braking
-        if self.is_braking:
-            self.speed_kmh = max(0.0, self.speed_kmh - 180.0 * delta)
-        elif self.is_turbo:
+        if self.is_turbo:
             self.speed_kmh = min(self.max_turbo_speed, self.speed_kmh + 75.0 * delta)
+        elif self.is_braking:
+            self.speed_kmh = max(0.0, self.speed_kmh - 180.0 * delta)
         else:
             if self.speed_kmh < self.max_cruise_speed:
                 self.speed_kmh = min(self.max_cruise_speed, self.speed_kmh + 50.0 * delta)
             else:
                 self.speed_kmh = max(self.max_cruise_speed, self.speed_kmh - 45.0 * delta)
                 
-        # Steering
-        steer_spd = 220.0 * (self.speed_kmh / 160.0)
+        # Steering (guarantee minimum steering authority of 0.40 even when stationary)
+        steer_spd = 220.0 * max(0.40, self.speed_kmh / 160.0)
         self.x += steer_axis * steer_spd * delta
         
         # Wobble decay & rotation (only tilts during spin/wobble from impact, perfectly upright during steering)

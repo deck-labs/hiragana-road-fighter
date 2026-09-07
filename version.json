@@ -1,10 +1,10 @@
 {
-  "version": "0.2.4",
-  "tag_name": "v0.2.4",
-  "name": "Hiragana Road Fighter v0.2.4 (Return to Title in Options & Steam Deck OLED Handheld Typography)",
+  "version": "0.2.5",
+  "tag_name": "v0.2.5",
+  "name": "Hiragana Road Fighter v0.2.5 (Steam Deck Gameplay Controls Fix)",
   "release_date": "2026-09-07",
   "appimage_filename": "Hiragana_Road_Fighter-x86_64.AppImage",
   "download_url": "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/Hiragana_Road_Fighter-x86_64.AppImage",
   "fallback_raw_url": "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/Hiragana_Road_Fighter-x86_64.AppImage",
-  "changelog": "Added 'Return to Title' under Options menu and high-contrast, enlarged typography optimized for Steam Deck OLED handheld display."
+  "changelog": "Fixed in-game car steering, gas, and braking controls on Steam Deck and Linux gamepads."
 }

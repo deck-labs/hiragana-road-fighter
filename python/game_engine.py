@@ -73,6 +73,7 @@ class GameEngine:
                 
         self.stick_x_released = True
         self.stick_y_released = True
+        self.gamepad_buttons_down = set()
             
         # Mouse auto-hide
         pygame.mouse.set_visible(False)
@@ -477,13 +478,14 @@ class GameEngine:
                 try:
                     joy = pygame.joystick.Joystick(event.device_index)
                     joy.init()
-                    if joy not in self.joysticks:
+                    if not any(j.get_instance_id() == joy.get_instance_id() for j in self.joysticks):
                         self.joysticks.append(joy)
                         print(f"Gamepad attached: {joy.get_name()}")
                 except Exception as e:
                     print(f"Error initializing attached gamepad: {e}")
             elif event.type == pygame.JOYDEVICEREMOVED:
                 self.joysticks = [j for j in self.joysticks if j.get_instance_id() != event.instance_id]
+                self.gamepad_buttons_down = {b for b in self.gamepad_buttons_down if b[0] != event.instance_id}
                 print("Gamepad detached")
 
             # Mouse activity & 2-second countdown
@@ -607,7 +609,7 @@ class GameEngine:
                     continue
 
                 # In-Game Keyboard commands
-                if event.key in (pygame.K_ESCAPE, pygame.K_RETURN):
+                if event.key == pygame.K_ESCAPE:
                     self.toggle_volume_menu()
                 elif self.is_stage_clear:
                     if self.current_stage == TOTAL_STAGES:
@@ -657,8 +659,16 @@ class GameEngine:
                         elif abs(event.value) < 0.25:
                             self.stick_x_released = True
 
+            # Gamepad Button Releases
+            if event.type == pygame.JOYBUTTONUP:
+                inst = getattr(event, 'instance_id', getattr(event, 'joy', 0))
+                self.gamepad_buttons_down.discard((inst, event.button))
+
             # Gamepad Button Presses
             if event.type == pygame.JOYBUTTONDOWN:
+                inst = getattr(event, 'instance_id', getattr(event, 'joy', 0))
+                self.gamepad_buttons_down.add((inst, event.button))
+
                 # Immediate check for simultaneous SELECT + START quit combination
                 if self.check_quit_combo():
                     self.running = False
@@ -756,43 +766,76 @@ class GameEngine:
         joy_steer = 0.0
         joy_turbo = False
         joy_brake = False
-
         for joy in self.joysticks:
-            # Analog stick X (Axis 0)
+            inst_id = joy.get_instance_id() if hasattr(joy, 'get_instance_id') else 0
+
+            # 1. Analog stick X (Axis 0)
             if joy.get_numaxes() > 0:
                 ax0 = joy.get_axis(0)
-                if abs(ax0) > 0.15:
+                if abs(ax0) > 0.18:
                     joy_steer = ax0
                     
-            # D-Pad X (Hat 0)
-            if joy.get_numhats() > 0:
-                hx, _ = joy.get_hat(0)
-                if hx != 0:
+            # 2. D-Pad (Hats): Hat X for Steer, Hat Y for Gas/Brake
+            for h in range(joy.get_numhats()):
+                hx, hy = joy.get_hat(h)
+                if abs(hx) > 0.2:
                     joy_steer = float(hx)
+                if hy > 0.2:
+                    joy_turbo = True
+                elif hy < -0.2:
+                    joy_brake = True
+
+            # 3. Left Stick Y (Axis 1): UP = Turbo, DOWN = Brake
+            if joy.get_numaxes() > 1:
+                ay = joy.get_axis(1)
+                if ay < -0.45: # Pushed UP
+                    joy_turbo = True
+                elif ay > 0.55: # Pushed DOWN
+                    joy_brake = True
                     
             num_btns = joy.get_numbuttons()
             # Turbo buttons: A (0), Y (3), RB (5)
-            if num_btns > 0 and joy.get_button(0): joy_turbo = True
-            if num_btns > 3 and joy.get_button(3): joy_turbo = True
-            if num_btns > 5 and joy.get_button(5): joy_turbo = True
-            
-            # Brake buttons: X (2), B (1), LB (4)
-            if num_btns > 2 and joy.get_button(2): joy_brake = True
-            if num_btns > 1 and joy.get_button(1): joy_brake = True
-            if num_btns > 4 and joy.get_button(4): joy_brake = True
-            
-            # Analog triggers
-            num_axes = joy.get_numaxes()
-            # Right Trigger (Axis 5 on Xbox/Deck) for Turbo
-            if num_axes > 5 and joy.get_axis(5) > 0.0:
+            if num_btns > 0 and (joy.get_button(0) or (inst_id, 0) in self.gamepad_buttons_down):
                 joy_turbo = True
-            # Left Trigger (Axis 4 on Xbox/Deck or Axis 2) for Brake
-            if num_axes > 4 and joy.get_axis(4) > 0.0:
+            if num_btns > 3 and (joy.get_button(3) or (inst_id, 3) in self.gamepad_buttons_down):
+                joy_turbo = True
+            if num_btns > 5 and (joy.get_button(5) or (inst_id, 5) in self.gamepad_buttons_down):
+                joy_turbo = True
+            
+            # Brake buttons: X (2), LB (4)
+            if num_btns > 2 and (joy.get_button(2) or (inst_id, 2) in self.gamepad_buttons_down):
+                joy_brake = True
+            if num_btns > 4 and (joy.get_button(4) or (inst_id, 4) in self.gamepad_buttons_down):
                 joy_brake = True
 
-        steer = key_steer if key_steer != 0.0 else joy_steer
+            # D-pad buttons fallback (Buttons 11=Up, 12=Down, 13=Left, 14=Right)
+            if num_btns > 14:
+                if joy.get_button(13) or (inst_id, 13) in self.gamepad_buttons_down:
+                    joy_steer = -1.0
+                elif joy.get_button(14) or (inst_id, 14) in self.gamepad_buttons_down:
+                    joy_steer = 1.0
+                if joy.get_button(11) or (inst_id, 11) in self.gamepad_buttons_down:
+                    joy_turbo = True
+                elif joy.get_button(12) or (inst_id, 12) in self.gamepad_buttons_down:
+                    joy_brake = True
+            
+            # Analog triggers (Strict threshold > 0.40 to reject idle/uncalibrated axes)
+            num_axes = joy.get_numaxes()
+            # Right Trigger: Axis 5 on Linux xpad / Xbox / Steam Deck
+            if num_axes > 5 and joy.get_axis(5) > 0.40:
+                joy_turbo = True
+            # Left Trigger: Axis 2 on Linux xpad / Xbox / Steam Deck
+            if num_axes > 2 and joy.get_axis(2) > 0.40:
+                joy_brake = True
+
+        steer = key_steer if abs(key_steer) > 0.01 else joy_steer
+        steer = max(-1.0, min(1.0, steer))
         turbo_down = key_turbo or joy_turbo
         brake_down = key_brake or joy_brake
+        
+        # Gas / Turbo ALWAYS takes priority over brake to prevent phantom or stuck braking
+        if turbo_down and brake_down:
+            brake_down = False
             
         self.player.handle_input(steer, turbo_down, brake_down, delta)
         
