@@ -67,10 +67,10 @@ def main():
                 screen = pygame.display.set_mode((0, 0), flags)
             except Exception as e2:
                 print(f"[Display] Desktop mode (0,0) note: {e2}, falling back to windowed mode")
-                screen = pygame.display.set_mode((min(target_w, 1920), min(target_h, 1080)), pygame.DOUBLEBUF)
+                screen = pygame.display.set_mode((min(target_w, 1920), min(target_h, 1200)), pygame.DOUBLEBUF)
     else:
         win_w = min(target_w, 1920) if not args.res else target_w
-        win_h = min(target_h, 1080) if not args.res else target_h
+        win_h = min(target_h, 1200) if not args.res else target_h
         screen = pygame.display.set_mode((win_w, win_h), pygame.DOUBLEBUF)
 
     actual_w, actual_h = screen.get_size()

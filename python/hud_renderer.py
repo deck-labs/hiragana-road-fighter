@@ -49,9 +49,10 @@ class HudRenderer:
             pygame.draw.rect(surface, COLOR_PANEL_BG, (rx, ry, rw, rh))
 
     def render_left_panel(self, surface: pygame.Surface, stage: int, track_dist: float, max_dist: float):
+        scr_h = surface.get_height()
         # 0 to 280 px
-        self.draw_tiled_carbon(surface, (0, 0, 280, SCREEN_HEIGHT))
-        pygame.draw.line(surface, COLOR_PANEL_BORDER, (280, 0), (280, SCREEN_HEIGHT), 2)
+        self.draw_tiled_carbon(surface, (0, 0, 280, scr_h))
+        pygame.draw.line(surface, COLOR_PANEL_BORDER, (280, 0), (280, scr_h), 2)
         
         # Stage Header
         st_rect = pygame.Rect(16, 16, 248, 85)
@@ -68,10 +69,19 @@ class HudRenderer:
         txt_tele = self.font_tiny.render("GPS TRACK TELEMETRY", True, (150, 180, 210))
         surface.blit(txt_tele, (28, 74))
         
+        # Dedicated Bottom Distance Telemetry Card
+        card_x = 16
+        card_w = 248
+        card_h = 175
+        card_y = scr_h - card_h - 20
+        card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
+        pygame.draw.rect(surface, (8, 16, 28), card_rect, border_radius=8)
+        pygame.draw.rect(surface, COLOR_PANEL_BORDER, card_rect, 2, border_radius=8)
+
         # Vertical Mini-Map Track
         track_x = 140
         track_top = 148
-        track_bot = 840
+        track_bot = card_y - 45
         track_len = track_bot - track_top
         
         # Goal Badge
@@ -115,15 +125,6 @@ class HudRenderer:
         txt_you = self.font_tiny.render("YOU", True, (0, 0, 0))
         surface.blit(txt_you, (track_x + 23, cur_y - 6))
 
-        # Dedicated Bottom Distance Telemetry Card (Occupies y: 885 to 1060)
-        card_x = 16
-        card_y = 885
-        card_w = 248
-        card_h = 175
-        card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
-        pygame.draw.rect(surface, (8, 16, 28), card_rect, border_radius=8)
-        pygame.draw.rect(surface, COLOR_PANEL_BORDER, card_rect, 2, border_radius=8)
-
         txt_dh = self.font_tiny.render("REMAINING DISTANCE", True, (150, 185, 220))
         surface.blit(txt_dh, txt_dh.get_rect(center=(card_x + card_w // 2, card_y + 20)))
 
@@ -149,8 +150,9 @@ class HudRenderer:
     def render_right_panel(self, surface: pygame.Surface, stage: int, target_kana: str, target_romaji: str,
                            speed_kmh: float, is_turbo: bool, is_braking: bool, fuel: float, score: float, match_timer: float):
         # 1240 to 1920 px (width 680)
-        self.draw_tiled_carbon(surface, (1240, 0, 680, SCREEN_HEIGHT))
-        pygame.draw.line(surface, COLOR_PANEL_BORDER, (1240, 0), (1240, SCREEN_HEIGHT), 2)
+        scr_h = surface.get_height()
+        self.draw_tiled_carbon(surface, (1240, 0, 680, scr_h))
+        pygame.draw.line(surface, COLOR_PANEL_BORDER, (1240, 0), (1240, scr_h), 2)
         
         rx = 1260
         rw = 640
@@ -306,6 +308,9 @@ class HudRenderer:
     def render_title_screen(self, surface: pygame.Surface, menu_index: int, selected_stage: int, display_info: str = ""):
         # Solid dark arcade canvas
         surface.fill((8, 12, 22))
+        surface_w = surface.get_width()
+        surface_h = surface.get_height()
+        cx = surface_w // 2
         
         # Current Version Running Indicator (Upper-Left)
         ver_text = f"VERSION {GAME_VERSION}"
@@ -319,37 +324,37 @@ class HudRenderer:
         
         # 1. Title Text with NES-style Chromatic Depth
         title_text = "HIRAGANA ROAD FIGHTER"
-        title_y = 310
+        title_y = int(surface_h * 0.285)
         
         # Shadow 1: Black
         t_b = self.font_title.render(title_text, True, (0, 0, 0))
-        surface.blit(t_b, t_b.get_rect(center=(SCREEN_WIDTH // 2, title_y + 4)))
+        surface.blit(t_b, t_b.get_rect(center=(cx, title_y + 4)))
         # Shadow 2: Crimson
         t_r = self.font_title.render(title_text, True, (215, 38, 38))
-        surface.blit(t_r, t_r.get_rect(center=(SCREEN_WIDTH // 2, title_y + 2)))
+        surface.blit(t_r, t_r.get_rect(center=(cx, title_y + 2)))
         # Face: Vibrant Gold
         t_g = self.font_title.render(title_text, True, COLOR_GOLD)
-        surface.blit(t_g, t_g.get_rect(center=(SCREEN_WIDTH // 2, title_y)))
+        surface.blit(t_g, t_g.get_rect(center=(cx, title_y)))
         
         # 2. Hiragana Title below Romanji
         kana_text = "ひらがな  ロードファイター"
         kana_y = title_y + 68
         t_k = self.font_kana_title.render(kana_text, True, COLOR_CYAN)
-        surface.blit(t_k, t_k.get_rect(center=(SCREEN_WIDTH // 2, kana_y)))
+        surface.blit(t_k, t_k.get_rect(center=(cx, kana_y)))
         
         # Divider line
-        pygame.draw.line(surface, (0, 130, 205), (660, kana_y + 45), (1260, kana_y + 45), 2)
+        pygame.draw.line(surface, (0, 130, 205), (cx - 300, kana_y + 45), (cx + 300, kana_y + 45), 2)
         
         # 3. Menu Items with 200ms NES Blinking
         is_blink = (int(time.time() * 1000) // 200) % 2 == 0
-        menu_y_start = 515
+        menu_y_start = title_y + 205
         spacing = 65
         
         # Item 0: START
         is_sel_0 = (menu_index == 0)
         col0 = COLOR_WHITE if (is_sel_0 and is_blink) else (COLOR_GOLD if is_sel_0 else (190, 210, 230))
         txt_0 = self.font_menu.render("START", True, col0)
-        r0 = txt_0.get_rect(center=(SCREEN_WIDTH // 2, menu_y_start))
+        r0 = txt_0.get_rect(center=(cx, menu_y_start))
         if is_sel_0 and is_blink:
             arrow = self.font_menu.render("►", True, COLOR_GOLD)
             surface.blit(arrow, (r0.left - 40, r0.top))
@@ -361,7 +366,7 @@ class HudRenderer:
         st_name = STAGE_NAMES.get(selected_stage, "STAGE 01")
         st_str = f"STAGE SELECT   ◄  STAGE 0{selected_stage} : {st_name}  ►" if is_sel_1 else f"STAGE SELECT   < STAGE 0{selected_stage} >"
         txt_1 = self.font_menu.render(st_str, True, col1)
-        r1 = txt_1.get_rect(center=(SCREEN_WIDTH // 2, menu_y_start + spacing))
+        r1 = txt_1.get_rect(center=(cx, menu_y_start + spacing))
         if is_sel_1 and is_blink:
             arrow = self.font_menu.render("►", True, COLOR_GOLD)
             surface.blit(arrow, (r1.left - 40, r1.top))
@@ -371,7 +376,7 @@ class HudRenderer:
         is_sel_2 = (menu_index == 2)
         col2 = COLOR_WHITE if (is_sel_2 and is_blink) else (COLOR_GOLD if is_sel_2 else (190, 210, 230))
         txt_2 = self.font_menu.render("OPTIONS", True, col2)
-        r2 = txt_2.get_rect(center=(SCREEN_WIDTH // 2, menu_y_start + spacing * 2))
+        r2 = txt_2.get_rect(center=(cx, menu_y_start + spacing * 2))
         if is_sel_2 and is_blink:
             arrow = self.font_menu.render("►", True, COLOR_GOLD)
             surface.blit(arrow, (r2.left - 40, r2.top))
@@ -381,7 +386,7 @@ class HudRenderer:
         is_sel_3 = (menu_index == 3)
         col3 = COLOR_WHITE if (is_sel_3 and is_blink) else (COLOR_GOLD if is_sel_3 else (190, 210, 230))
         txt_3 = self.font_menu.render("CHECK FOR UPDATES", True, col3)
-        r3 = txt_3.get_rect(center=(SCREEN_WIDTH // 2, menu_y_start + spacing * 3))
+        r3 = txt_3.get_rect(center=(cx, menu_y_start + spacing * 3))
         if is_sel_3 and is_blink:
             arrow = self.font_menu.render("►", True, COLOR_GOLD)
             surface.blit(arrow, (r3.left - 40, r3.top))
@@ -390,11 +395,11 @@ class HudRenderer:
         # Display Mode Badge (Bottom-Left)
         if display_info:
             txt_disp = self.font_tiny.render(f"DISPLAY: {display_info}", True, (110, 140, 175))
-            surface.blit(txt_disp, (40, SCREEN_HEIGHT - 45))
+            surface.blit(txt_disp, (40, surface_h - 45))
 
         # Footer
         txt_foot = self.font_tiny.render("▲/▼ NAVIGATE   ◀/▶ ADJUST   [ENTER] / [A] / [START]: SELECT   [SELECT + START]: QUIT", True, (140, 175, 210))
-        surface.blit(txt_foot, txt_foot.get_rect(center=(SCREEN_WIDTH // 2, 980)))
+        surface.blit(txt_foot, txt_foot.get_rect(center=(cx, surface_h - 100)))
 
     def render_volume_menu(self, surface: pygame.Surface, is_title_screen: bool, selected_idx: int,
                            master_vol: float, engine_vol: float, sfx_vol: float,
@@ -402,8 +407,10 @@ class HudRenderer:
         # Modal dialog centered
         w = 680
         h = 530
-        cx = SCREEN_WIDTH // 2 if is_title_screen else 760
-        cy = SCREEN_HEIGHT // 2
+        surface_w = surface.get_width()
+        surface_h = surface.get_height()
+        cx = surface_w // 2 if is_title_screen else 760
+        cy = surface_h // 2
         x = cx - (w // 2)
         y = cy - (h // 2)
         
@@ -500,11 +507,13 @@ class HudRenderer:
 
     def render_pause_overlay(self, surface: pygame.Surface):
         is_blink = (int(time.time() * 1000) // 350) % 2 == 0
+        surface_w = surface.get_width()
+        surface_h = surface.get_height()
         cx = 760
-        cy = 500
+        cy = surface_h // 2
         
         # Semi-transparent dark curtain across the road viewport
-        dim_surf = pygame.Surface((960, 1080), pygame.SRCALPHA)
+        dim_surf = pygame.Surface((960, surface_h), pygame.SRCALPHA)
         dim_surf.fill((0, 0, 0, 100))
         surface.blit(dim_surf, (280, 0))
         
@@ -523,11 +532,12 @@ class HudRenderer:
         surface.blit(txt_sub, txt_sub.get_rect(center=(cx, cy + 34)))
 
     def render_stage_clear_overlay(self, surface: pygame.Surface, stage: int):
+        surface_h = surface.get_height()
         cx = 760
-        cy = 480
+        cy = surface_h // 2
         
         if stage == TOTAL_STAGES:
-            # All 4 stages cleared!
+            # All 5 stages cleared!
             box_w = 680
             box_h = 240
             r_box = pygame.Rect(cx - box_w // 2, cy - box_h // 2, box_w, box_h)
@@ -556,8 +566,9 @@ class HudRenderer:
             surface.blit(txt_f, txt_f.get_rect(center=(cx, cy + 35)))
 
     def render_game_over_overlay(self, surface: pygame.Surface):
+        surface_h = surface.get_height()
         cx = 760
-        cy = 480
+        cy = surface_h // 2
         box_w = 580
         box_h = 200
         r_box = pygame.Rect(cx - box_w // 2, cy - box_h // 2, box_w, box_h)
@@ -573,16 +584,18 @@ class HudRenderer:
     def render_update_modal(self, surface: pygame.Surface, update_mgr):
         """Renders the online system update dialog modal with real-time status and download progress."""
         import os
+        surface_w = surface.get_width()
+        surface_h = surface.get_height()
         # 1. Full-screen dimmed backdrop
-        dim_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        dim_surf = pygame.Surface((surface_w, surface_h), pygame.SRCALPHA)
         dim_surf.fill((5, 10, 18, 215))
         surface.blit(dim_surf, (0, 0))
         
         # 2. Centered Cyber Modal Dialog
         w = 840
         h = 500
-        cx = SCREEN_WIDTH // 2
-        cy = SCREEN_HEIGHT // 2
+        cx = surface_w // 2
+        cy = surface_h // 2
         x = cx - (w // 2)
         y = cy - (h // 2)
         

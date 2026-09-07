@@ -258,9 +258,10 @@ class TrafficCar:
         # Move along track
         self.world_y += self.speed_kmh * 3.0 * delta
 
-    def update_screen_pos(self, track_distance: float, road_edges: tuple[float, float]):
+    def update_screen_pos(self, track_distance: float, road_edges: tuple[float, float], player_screen_y: float = None, screen_h: float = None):
         # Screen Y
-        self.y = PLAYER_SCREEN_Y - (self.world_y - track_distance)
+        base_y = player_screen_y if player_screen_y is not None else PLAYER_SCREEN_Y
+        self.y = base_y - (self.world_y - track_distance)
         
         # Follow road edges smoothly
         r_left, r_right = road_edges
@@ -270,7 +271,8 @@ class TrafficCar:
         self.x = r_left + car_margin + (self.lane_fraction * avail_width)
         
         # Despawn bounds
-        if self.y > 1180.0 or self.y < -500.0:
+        max_y = (screen_h + 120.0) if screen_h is not None else 1300.0
+        if self.y > max_y or self.y < -500.0:
             self.to_remove = True
 
     def trigger_match(self):

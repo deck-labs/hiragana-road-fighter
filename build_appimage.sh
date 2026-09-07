@@ -128,15 +128,12 @@ if [ ! -x "$TOOL" ]; then
     fi
 fi
 
-OUT_FILE="/home/deck/Downloads/Hiragana_Road_Fighter-x86_64.AppImage"
+OUT_FILE="$DIR/Hiragana_Road_Fighter-x86_64.AppImage"
 rm -f "$OUT_FILE"
 
 echo "Running $TOOL on $APPDIR -> $OUT_FILE..."
 ARCH=x86_64 "$TOOL" "$APPDIR" "$OUT_FILE"
 chmod +x "$OUT_FILE"
-
-# Also place copy in project root
-cp -f "$OUT_FILE" "$DIR/Hiragana_Road_Fighter-x86_64.AppImage"
 
 echo "========================================================="
 echo " AppImage successfully generated at:                      "

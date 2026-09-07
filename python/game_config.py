@@ -21,7 +21,7 @@ ROAD_WIDTH = GAME_W - (ROAD_MARGIN * 2.0)  # 640.0 px wide 4-lane highway
 PLAYER_SCREEN_Y = 840.0
 
 # Version & Release Metadata
-GAME_VERSION = "0.2.2"
+GAME_VERSION = "0.2.3"
 GITHUB_REPO = "deck-labs/hiragana-road-fighter"
 VERSION_CHECK_URL = "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/version.json"
 RELEASES_API_URL = "https://api.github.com/repos/deck-labs/hiragana-road-fighter/releases/latest"
@@ -196,3 +196,26 @@ def compute_aspect_ratio(w: int, h: int) -> tuple[float, str]:
         return (32.0 / 9.0, "32:9 (Super Ultrawide)")
     else:
         return (ratio, f"Custom ({w}x{h})")
+
+def get_virtual_dimensions(w: int, h: int, aspect_mode: str = "auto") -> tuple[int, int]:
+    """Calculate virtual canvas dimensions based on display ratio and aspect mode."""
+    if h <= 0:
+        return 1920, 1080
+    ratio = w / h
+    if aspect_mode == "auto":
+        if 1.50 <= ratio <= 1.65:
+            # 16:10 Native (Steam Deck 1280x800, 1920x1200, 2560x1600)
+            return 1920, 1200
+        elif 1.66 <= ratio <= 1.85:
+            # 16:9 Native (1080p, 1440p, 4K UHD)
+            return 1920, 1080
+        elif ratio < 1.50:
+            # Taller display (e.g. 4:3, 5:4)
+            return 1920, int(round(1920 / ratio))
+        else:
+            # Ultrawide (21:9) -> render 16:9 virtual canvas with side pillarbox bezels
+            return 1920, 1080
+    elif aspect_mode == "16:9":
+        return 1920, 1080
+    else: # stretch
+        return 1920, 1080

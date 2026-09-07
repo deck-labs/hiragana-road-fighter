@@ -405,10 +405,12 @@ class RoadRenderer:
                 surface.blit(tex, (x, y))
         surface.set_clip(None)
 
-    def render(self, surface: pygame.Surface, stage: int, track_dist: float):
+    def render(self, surface: pygame.Surface, stage: int, track_dist: float, player_screen_y: float = None):
         self.frames += 1
         self.current_stage = stage
         self.track_distance = track_dist
+        self.screen_height = surface.get_height()
+        self.player_screen_y = player_screen_y if player_screen_y is not None else (self.screen_height - 240.0)
         
         if stage == 1:
             self._render_stage1(surface)
@@ -424,19 +426,21 @@ class RoadRenderer:
         self._render_finish_line(surface)
 
     def _render_stage1(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
         # Grass verges on left & right
-        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X, 0, ROAD_MARGIN, SCREEN_HEIGHT))
-        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, SCREEN_HEIGHT))
+        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X, 0, ROAD_MARGIN, scr_h))
+        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, scr_h))
         
         # Asphalt
         road_left = GAME_X + ROAD_MARGIN
         road_w = GAME_W - (ROAD_MARGIN * 2.0)
-        self.draw_tiled_texture(surface, self.tex_asphalt, (road_left, 0, road_w, SCREEN_HEIGHT))
+        self.draw_tiled_texture(surface, self.tex_asphalt, (road_left, 0, road_w, scr_h))
         
         # Lane Markings & Curbs
         lane_w = road_w / 4.0
         slice_h = 6
-        for y in range(0, SCREEN_HEIGHT, slice_h):
+        for y in range(0, scr_h, slice_h):
             dash_y = (y + int(self.track_distance)) % 60
             if dash_y < 30:
                 # White lane dividers
@@ -453,20 +457,22 @@ class RoadRenderer:
             
         # Trees
         for tx, ty in self.stage1_trees:
-            scr_y = PLAYER_SCREEN_Y - (ty - self.track_distance)
-            if -120 <= scr_y <= SCREEN_HEIGHT + 120 and self.tex_tree:
+            scr_y = ply_y - (ty - self.track_distance)
+            if -120 <= scr_y <= scr_h + 120 and self.tex_tree:
                 surface.blit(pygame.transform.scale(self.tex_tree, (72, 90)), (tx - 36, scr_y - 90))
 
     def _render_stage2(self, surface: pygame.Surface):
         slice_h = 6
         wave_time = self.frames * 0.04
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
         
         # Deep Ocean base
-        pygame.draw.rect(surface, COLOR_WATER_DEEP, (GAME_X, 0, GAME_W, SCREEN_HEIGHT))
-        self.draw_tiled_texture(surface, self.tex_water, (GAME_X, 0, GAME_W, SCREEN_HEIGHT))
+        pygame.draw.rect(surface, COLOR_WATER_DEEP, (GAME_X, 0, GAME_W, scr_h))
+        self.draw_tiled_texture(surface, self.tex_water, (GAME_X, 0, GAME_W, scr_h))
         
-        for y in range(0, SCREEN_HEIGHT, slice_h):
-            world_y = self.track_distance + (PLAYER_SCREEN_Y - y)
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
             r_left, r_right = self.get_road_edges(2, world_y)
             r_w = r_right - r_left
             
@@ -529,18 +535,20 @@ class RoadRenderer:
     def _render_stage3(self, surface: pygame.Surface):
         slice_h = 6
         wave_time = self.frames * 0.04
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
         
         # Base Sand background
-        self.draw_tiled_texture(surface, self.tex_sand, (GAME_X, 0, GAME_W, SCREEN_HEIGHT))
+        self.draw_tiled_texture(surface, self.tex_sand, (GAME_X, 0, GAME_W, scr_h))
         
         # Ocean Backdrop on right half
         ocean_base_x = GAME_X + GAME_W * 0.42
         ocean_base_w = GAME_W * 0.58
-        pygame.draw.rect(surface, COLOR_WATER_DEEP, (ocean_base_x, 0, ocean_base_w, SCREEN_HEIGHT))
-        self.draw_tiled_texture(surface, self.tex_water, (ocean_base_x, 0, ocean_base_w, SCREEN_HEIGHT))
+        pygame.draw.rect(surface, COLOR_WATER_DEEP, (ocean_base_x, 0, ocean_base_w, scr_h))
+        self.draw_tiled_texture(surface, self.tex_water, (ocean_base_x, 0, ocean_base_w, scr_h))
         
-        for y in range(0, SCREEN_HEIGHT, slice_h):
-            world_y = self.track_distance + (PLAYER_SCREEN_Y - y)
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
             r_left, r_right = self.get_road_edges(3, world_y)
             r_w = r_right - r_left
             
@@ -609,18 +617,20 @@ class RoadRenderer:
             
         # Palm Trees
         for px, py in self.stage3_palms:
-            scr_y = PLAYER_SCREEN_Y - (py - self.track_distance)
-            if -120 <= scr_y <= SCREEN_HEIGHT + 120 and self.tex_palm_tree:
+            scr_y = ply_y - (py - self.track_distance)
+            if -120 <= scr_y <= scr_h + 120 and self.tex_palm_tree:
                 surface.blit(pygame.transform.scale(self.tex_palm_tree, (72, 90)), (px - 36, scr_y - 90))
 
     def _render_stage4(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
         # Base rocky ground on shoulders
-        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X, 0, ROAD_MARGIN + 30.0, SCREEN_HEIGHT))
-        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X + GAME_W - ROAD_MARGIN - 30.0, 0, ROAD_MARGIN + 30.0, SCREEN_HEIGHT))
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X, 0, ROAD_MARGIN + 30.0, scr_h))
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X + GAME_W - ROAD_MARGIN - 30.0, 0, ROAD_MARGIN + 30.0, scr_h))
         
         slice_h = 6
-        for y in range(0, SCREEN_HEIGHT, slice_h):
-            world_y = self.track_distance + (PLAYER_SCREEN_Y - y)
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
             r_left, r_right = self.get_road_edges(4, world_y)
             r_w = r_right - r_left
             
@@ -679,23 +689,25 @@ class RoadRenderer:
         for item in self.stage4_scenery:
             px, py = item["pos"]
             is_pine = item["is_pine"]
-            scr_y = PLAYER_SCREEN_Y - (py - self.track_distance)
-            if -100 <= scr_y <= SCREEN_HEIGHT + 100:
+            scr_y = ply_y - (py - self.track_distance)
+            if -100 <= scr_y <= scr_h + 100:
                 if is_pine and self.tex_pine_tree:
                     surface.blit(pygame.transform.scale(self.tex_pine_tree, (48, 64)), (px - 24, scr_y - 64))
                 elif not is_pine and self.tex_boulder:
                     surface.blit(pygame.transform.scale(self.tex_boulder, (48, 36)), (px - 24, scr_y - 36))
 
     def _render_stage5(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
         # 1. Midnight / Twilight Night Sky Base
-        pygame.draw.rect(surface, (10, 14, 24), (GAME_X, 0, GAME_W, SCREEN_HEIGHT))
+        pygame.draw.rect(surface, (10, 14, 24), (GAME_X, 0, GAME_W, scr_h))
         
         # 2. Elevated Expressway Concrete Deck on Verges
-        self.draw_tiled_texture(surface, self.tex_concrete, (GAME_X, 0, ROAD_MARGIN, SCREEN_HEIGHT))
-        self.draw_tiled_texture(surface, self.tex_concrete, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, SCREEN_HEIGHT))
+        self.draw_tiled_texture(surface, self.tex_concrete, (GAME_X, 0, ROAD_MARGIN, scr_h))
+        self.draw_tiled_texture(surface, self.tex_concrete, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, scr_h))
         
         # Nighttime atmospheric shading on concrete
-        night_shading = pygame.Surface((int(ROAD_MARGIN), SCREEN_HEIGHT), pygame.SRCALPHA)
+        night_shading = pygame.Surface((int(ROAD_MARGIN), scr_h), pygame.SRCALPHA)
         night_shading.fill((10, 14, 26, 185))
         surface.blit(night_shading, (GAME_X, 0))
         surface.blit(night_shading, (GAME_X + GAME_W - ROAD_MARGIN, 0))
@@ -703,8 +715,8 @@ class RoadRenderer:
         # 3. Skyscraper Silhouettes in Background Verges
         for b in self.stage5_buildings:
             bx, by, bw, bh = b["x"], b["y"], b["w"], b["h"]
-            scr_y = PLAYER_SCREEN_Y - (by - self.track_distance)
-            if -bh <= scr_y <= SCREEN_HEIGHT + 50:
+            scr_y = ply_y - (by - self.track_distance)
+            if -bh <= scr_y <= scr_h + 50:
                 # Building facade
                 b_rect = pygame.Rect(int(bx), int(scr_y), int(bw), int(bh))
                 pygame.draw.rect(surface, b["col"], b_rect)
@@ -721,15 +733,15 @@ class RoadRenderer:
                 wins = b["windows"]
                 for r_idx, row in enumerate(wins):
                     wy = scr_y + 16 + r_idx * 18
-                    if 0 <= wy <= SCREEN_HEIGHT:
+                    if 0 <= wy <= scr_h:
                         for c_idx, w_col in enumerate(row):
                             wx = bx + 8 + c_idx * 14
                             pygame.draw.rect(surface, w_col, (int(wx), int(wy), 8, 10))
 
         # 4. Slices: Roadway, Asphalt, Neon Curbs, and Reflective Markings
         slice_h = 6
-        for y in range(0, SCREEN_HEIGHT, slice_h):
-            world_y = self.track_distance + (PLAYER_SCREEN_Y - y)
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
             r_left, r_right = self.get_road_edges(5, world_y)
             r_w = r_right - r_left
             
@@ -765,8 +777,8 @@ class RoadRenderer:
 
         # 5. Street Light Lamp Posts along Highway Shoulders
         for ly in self.stage5_lamps:
-            scr_y = PLAYER_SCREEN_Y - (ly - self.track_distance)
-            if -80 <= scr_y <= SCREEN_HEIGHT + 80:
+            scr_y = ply_y - (ly - self.track_distance)
+            if -80 <= scr_y <= scr_h + 80:
                 r_l, r_r = self.get_road_edges(5, ly)
                 
                 # Left Lamp Post
@@ -787,8 +799,8 @@ class RoadRenderer:
 
         # 6. Overhead Expressway Gantries
         for gy in self.stage5_gantries:
-            scr_y = PLAYER_SCREEN_Y - (gy - self.track_distance)
-            if -80 <= scr_y <= SCREEN_HEIGHT + 80:
+            scr_y = ply_y - (gy - self.track_distance)
+            if -80 <= scr_y <= scr_h + 80:
                 r_l, r_r = self.get_road_edges(5, gy)
                 gw = (r_r - r_l) + 50.0
                 gx = r_l - 25.0
@@ -813,9 +825,11 @@ class RoadRenderer:
                         surface.blit(ts, ts.get_rect(center=(int(sx + sign_w * 0.5), int(scr_y - 44))))
 
     def _render_finish_line(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
         remaining = STAGE_TRACK_LENGTH - self.track_distance
-        finish_y = PLAYER_SCREEN_Y - remaining
-        if -80.0 <= finish_y <= SCREEN_HEIGHT + 80.0:
+        finish_y = ply_y - remaining
+        if -80.0 <= finish_y <= scr_h + 80.0:
             r_left, r_right = self.get_road_edges(self.current_stage, STAGE_TRACK_LENGTH)
             r_w = r_right - r_left
             

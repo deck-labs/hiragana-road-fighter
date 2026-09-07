@@ -11,7 +11,7 @@ from game_config import (
     GAME_X, GAME_W, ROAD_MARGIN, STAGE_TRACK_LENGTH, GAME_SPEED_SCALE,
     MAX_FUEL, FUEL_REWARD, FUEL_PENALTY, SCORE_REWARD, TOTAL_STAGES,
     STAGE_KANA, TRAFFIC_COLORS, COLOR_BG, COLOR_BEZEL,
-    compute_aspect_ratio, get_asset_path
+    compute_aspect_ratio, get_asset_path, get_virtual_dimensions
 )
 from audio_system import AudioSystem
 from road_renderer import RoadRenderer
@@ -27,19 +27,21 @@ class GameEngine:
         self.clock = pygame.time.Clock()
         self.running = True
         
-        # Virtual Canvas (Fixed high-definition internal resolution)
-        self.virtual_screen = pygame.Surface((VIRTUAL_WIDTH, VIRTUAL_HEIGHT))
-        
         # Display & Viewport Geometry
         win_size = self.screen.get_size() if self.screen else (VIRTUAL_WIDTH, VIRTUAL_HEIGHT)
         self.detected_res = detected_res if detected_res else win_size
         self.aspect_ratio_num, self.detected_aspect_label = compute_aspect_ratio(*self.detected_res)
         self.aspect_mode = aspect_mode # "auto" or "stretch"
         
+        # Virtual Canvas (Dynamic aspect-adaptive high-definition internal resolution)
+        self.virtual_width, self.virtual_height = get_virtual_dimensions(self.detected_res[0], self.detected_res[1], self.aspect_mode)
+        self.virtual_screen = pygame.Surface((self.virtual_width, self.virtual_height))
+        self.player_screen_y = self.virtual_height - 240.0
+        
         self._last_win_w = 0
         self._last_win_h = 0
         self._last_aspect_mode = ""
-        self.dst_rect = pygame.Rect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT)
+        self.dst_rect = pygame.Rect(0, 0, self.virtual_width, self.virtual_height)
         self.scaled_surf = None
         
         # Audio & Renderers
@@ -55,6 +57,7 @@ class GameEngine:
         
         self.hud = HudRenderer(self.font_latin, self.font_cjk)
         self.player = PlayerCar(self.font_cjk)
+        self.player.y = self.player_screen_y
         
         # Gamepad setup
         pygame.joystick.init()
@@ -170,7 +173,7 @@ class GameEngine:
             self._spawn_traffic_car(self.track_distance + 280.0 + (idx * 240.0))
             
         self.player.x = 680.0
-        self.player.y = 840.0
+        self.player.y = self.player_screen_y
         self.player.speed_kmh = 80.0
         self.player.wobble_timer = 0.0
 
@@ -196,6 +199,7 @@ class GameEngine:
         self.road.current_stage = self.selected_stage
         self.road.track_distance = 0.0
         self.player.x = 680.0
+        self.player.y = self.player_screen_y
         self.player.speed_kmh = 0.0
 
     def pick_new_target_kana(self):
@@ -305,6 +309,8 @@ class GameEngine:
     def get_aspect_mode_label(self) -> str:
         if self.aspect_mode == "stretch":
             return "FULL (STRETCH)"
+        if 1.50 <= self.aspect_ratio_num <= 1.65:
+            return "AUTO (16:10 NATIVE)"
         return f"AUTO ({self.detected_aspect_label.split()[0]})"
 
     def toggle_aspect_mode(self):
@@ -319,14 +325,26 @@ class GameEngine:
         self._last_win_w, self._last_win_h = win_w, win_h
         self._last_aspect_mode = self.aspect_mode
 
+        # Ensure virtual canvas matches current window aspect ratio / mode
+        new_vw, new_vh = get_virtual_dimensions(win_w, win_h, self.aspect_mode)
+        if (new_vw, new_vh) != (self.virtual_width, self.virtual_height):
+            self.virtual_width, self.virtual_height = new_vw, new_vh
+            self.virtual_screen = pygame.Surface((self.virtual_width, self.virtual_height))
+            self.player_screen_y = self.virtual_height - 240.0
+            self.player.y = self.player_screen_y
+
         if self.aspect_mode == "stretch":
             draw_w, draw_h = win_w, win_h
             dst_x, dst_y = 0, 0
         else:
-            # AUTO: preserve optimal 16:9 aspect ratio
-            target_ratio = VIRTUAL_WIDTH / VIRTUAL_HEIGHT
+            # AUTO: preserve optimal aspect ratio based on virtual canvas
+            target_ratio = self.virtual_width / self.virtual_height
             win_ratio = win_w / win_h
-            if win_ratio > target_ratio:
+            if abs(win_ratio - target_ratio) < 0.01:
+                # Direct match (e.g. 1920x1200 on 1280x800, or 1920x1080 on 1920x1080) -> ZERO black bars!
+                draw_w, draw_h = win_w, win_h
+                dst_x, dst_y = 0, 0
+            elif win_ratio > target_ratio:
                 # Wider (pillarbox)
                 draw_h = win_h
                 draw_w = int(win_h * target_ratio)
@@ -340,7 +358,7 @@ class GameEngine:
                 dst_y = (win_h - draw_h) // 2
 
         self.dst_rect = pygame.Rect(dst_x, dst_y, draw_w, draw_h)
-        if (draw_w, draw_h) != (VIRTUAL_WIDTH, VIRTUAL_HEIGHT):
+        if (draw_w, draw_h) != (self.virtual_width, self.virtual_height):
             self.scaled_surf = pygame.Surface((draw_w, draw_h))
         else:
             self.scaled_surf = None
@@ -349,7 +367,7 @@ class GameEngine:
         self._update_viewport_geometry()
         win_w, win_h = self.screen.get_size()
 
-        if self.dst_rect.size == (VIRTUAL_WIDTH, VIRTUAL_HEIGHT):
+        if self.dst_rect.size == (self.virtual_width, self.virtual_height):
             if self.dst_rect.topleft == (0, 0):
                 self.screen.blit(self.virtual_screen, (0, 0))
             else:
@@ -368,8 +386,8 @@ class GameEngine:
             return mx, my
         rel_x = mx - self.dst_rect.x
         rel_y = my - self.dst_rect.y
-        vx = int(rel_x * (VIRTUAL_WIDTH / self.dst_rect.w))
-        vy = int(rel_y * (VIRTUAL_HEIGHT / self.dst_rect.h))
+        vx = int(rel_x * (self.virtual_width / self.dst_rect.w))
+        vy = int(rel_y * (self.virtual_height / self.dst_rect.h))
         return vx, vy
 
     def open_update_dialog(self):
@@ -469,7 +487,7 @@ class GameEngine:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = self.window_to_virtual_coords(*event.pos)
                 if self.is_update_dialog_open:
-                    cx, cy = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
+                    cx, cy = self.virtual_width // 2, self.virtual_height // 2
                     modal_rect = pygame.Rect(cx - 420, cy - 250, 840, 500)
                     btn_rect = pygame.Rect(cx - 300, cy + 190, 600, 55)
                     if btn_rect.collidepoint(mx, my):
@@ -477,39 +495,54 @@ class GameEngine:
                     elif not modal_rect.collidepoint(mx, my):
                         self.close_update_dialog()
                 elif self.is_title_screen and not self.is_volume_menu_open:
-                    if 495 <= my <= 545 and 600 <= mx <= 1320:
+                    cx = self.virtual_width // 2
+                    title_y = int(self.virtual_height * 0.285)
+                    m_start = title_y + 205
+                    sp = 65
+                    if (m_start - 25) <= my <= (m_start + 25) and (cx - 360) <= mx <= (cx + 360):
                         self.start_game_from_title()
-                    elif 560 <= my <= 610 and 420 <= mx <= 1500:
-                        if mx < 960:
+                    elif (m_start + sp - 25) <= my <= (m_start + sp + 25) and (cx - 540) <= mx <= (cx + 540):
+                        if mx < cx:
                             self.menu_left()
                         else:
                             self.menu_right()
-                    elif 625 <= my <= 675 and 600 <= mx <= 1320:
+                    elif (m_start + sp * 2 - 25) <= my <= (m_start + sp * 2 + 25) and (cx - 360) <= mx <= (cx + 360):
                         self.toggle_volume_menu()
-                    elif 690 <= my <= 745 and 600 <= mx <= 1320:
+                    elif (m_start + sp * 3 - 25) <= my <= (m_start + sp * 3 + 25) and (cx - 360) <= mx <= (cx + 360):
                         self.open_update_dialog()
                 elif self.is_volume_menu_open:
-                    cx = SCREEN_WIDTH // 2 if self.is_title_screen else 760
+                    cx = self.virtual_width // 2 if self.is_title_screen else 760
+                    cy = self.virtual_height // 2
                     w, h = 680, 530
                     x = cx - (w // 2)
+                    y = cy - (h // 2)
+                    start_sy = y + 95
+                    spacing_s = 75
+                    
                     bar_x = x + 40
                     bar_w = w - 80
                     click_val = max(0.0, min(1.0, (mx - bar_x) / bar_w))
                     
-                    if 360 <= my <= 425:
+                    s0_y = start_sy
+                    s1_y = start_sy + spacing_s
+                    s2_y = start_sy + spacing_s * 2
+                    ar_y = start_sy + spacing_s * 3
+                    btn_y = y + 428
+                    
+                    if (s0_y - 10) <= my <= (s0_y + 55):
                         self.volume_selected_index = 0
                         self.audio.set_master_volume(click_val)
-                    elif 435 <= my <= 500:
+                    elif (s1_y - 10) <= my <= (s1_y + 55):
                         self.volume_selected_index = 1
                         self.audio.set_engine_volume(click_val)
-                    elif 510 <= my <= 575:
+                    elif (s2_y - 10) <= my <= (s2_y + 55):
                         self.volume_selected_index = 2
                         self.audio.set_sfx_volume(click_val)
                         self.audio.play_match()
-                    elif 585 <= my <= 645 and (x + 30) <= mx <= (x + w - 30):
+                    elif (ar_y - 10) <= my <= (ar_y + 55) and (x + 30) <= mx <= (x + w - 30):
                         self.volume_selected_index = 3
                         self.toggle_aspect_mode()
-                    elif 685 <= my <= 745 and (cx - 160) <= mx <= (cx + 160):
+                    elif (btn_y - 10) <= my <= (btn_y + 50) and (cx - 160) <= mx <= (cx + 160):
                         self.toggle_volume_menu()
 
             # Keyboard Input
@@ -771,7 +804,7 @@ class GameEngine:
         for car in list(self.traffic_cars):
             car.update(delta)
             edges_at_car = self.road.get_road_edges(self.current_stage, car.world_y)
-            car.update_screen_pos(self.track_distance, edges_at_car)
+            car.update_screen_pos(self.track_distance, edges_at_car, player_screen_y=self.player_screen_y, screen_h=self.virtual_height)
             
             if car.to_remove:
                 self.traffic_cars.remove(car)
@@ -828,7 +861,7 @@ class GameEngine:
         self.virtual_screen.fill(COLOR_BG)
         
         # 1. Road & Environment
-        self.road.render(self.virtual_screen, self.current_stage, self.track_distance)
+        self.road.render(self.virtual_screen, self.current_stage, self.track_distance, player_screen_y=self.player_screen_y)
         
         # 2. Traffic Cars
         for car in self.traffic_cars:
