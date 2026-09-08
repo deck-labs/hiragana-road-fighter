@@ -108,6 +108,7 @@ class GameEngine:
         if self.is_title_screen:
             self.player.speed_kmh = 0.0
             self.audio.stop_all()
+            self.audio.play_title_music()
         else:
             self.start_stage(self.current_stage, keep_fuel=False)
             if custom_dist > 0.0:
@@ -152,6 +153,7 @@ class GameEngine:
         return False
 
     def start_stage(self, stage_num: int, keep_fuel: bool = False):
+        self.audio.stop_title_music(fade_ms=350)
         self.current_stage = stage_num
         self.track_distance = 0.0
         self.is_stage_clear = False
@@ -182,6 +184,7 @@ class GameEngine:
     def start_game_from_title(self):
         self.is_title_screen = False
         self.current_stage = self.selected_stage
+        self.audio.stop_title_music(fade_ms=350)
         self.audio.play_fanfare()
         self.start_stage(self.selected_stage, keep_fuel=False)
         self.audio.start_engine()
@@ -196,6 +199,7 @@ class GameEngine:
         self.stage_clear_timer = 0.0
         self.title_menu_index = 0
         self.audio.stop_all()
+        self.audio.play_title_music()
         self.traffic_cars.clear()
         self.current_stage = self.selected_stage
         self.road.current_stage = self.selected_stage

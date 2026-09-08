@@ -1,10 +1,10 @@
 {
-  "version": "0.3.0",
-  "tag_name": "v0.3.0",
-  "name": "Hiragana Road Fighter v0.3.0 (Stage 7 Glacier Tundra & Ma-Row)",
+  "version": "0.3.1",
+  "tag_name": "v0.3.1",
+  "name": "Hiragana Road Fighter v0.3.1 (Smooth Sound Transitions & NES Title Music)",
   "release_date": "2026-09-08",
   "appimage_filename": "Hiragana_Road_Fighter-x86_64.AppImage",
   "download_url": "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/Hiragana_Road_Fighter-x86_64.AppImage",
   "fallback_raw_url": "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/Hiragana_Road_Fighter-x86_64.AppImage",
-  "changelog": "New Stage 7: Glacier Tundra featuring Ma-row Hiragana (ま, み, む, め, も), sub-zero alpine curves, crystalline ice spires, snow-capped evergreens, frosted slate asphalt, and glacier cyan & snow white curbs!"
+  "changelog": "Fixed abrupt engine volume pop when colliding with matching cars by introducing continuous exponential volume smoothing and gentle envelope ducking. Added authentic 16-bar 8-bit NES chiptune title theme (OGG/MIDI) with seamless looping."
 }
