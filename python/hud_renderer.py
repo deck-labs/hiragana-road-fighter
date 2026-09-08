@@ -34,7 +34,9 @@ class HudRenderer:
         self.font_speed = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 54)
         self.font_version = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 22)
         self.font_sub = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 22)
+        self.font_stage_name = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 20)
         self.font_caption = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 18)
+        self.font_desc = pygame.font.Font(get_asset_path("fonts/DejaVuSans-Bold.ttf"), 15)
         self.font_tiny = self.font_caption  # High-contrast 18pt font alias for handheld readability
 
     def draw_tiled_carbon(self, surface: pygame.Surface, rect: tuple[int, int, int, int]):
@@ -55,20 +57,20 @@ class HudRenderer:
         self.draw_tiled_carbon(surface, (0, 0, 280, scr_h))
         pygame.draw.line(surface, COLOR_PANEL_BORDER, (280, 0), (280, scr_h), 2)
         
-        # Stage Header
-        st_rect = pygame.Rect(16, 16, 248, 104)
+        # Stage Header Box (Balanced spacing, zero collisions, clean centering)
+        st_rect = pygame.Rect(14, 14, 252, 130)
         pygame.draw.rect(surface, (10, 20, 36), st_rect, border_radius=6)
         pygame.draw.rect(surface, COLOR_GOLD, st_rect, 2, border_radius=6)
         
         txt_st = self.font_menu.render(f"STAGE 0{stage}", True, COLOR_GOLD)
-        surface.blit(txt_st, (26, 22))
+        surface.blit(txt_st, txt_st.get_rect(center=(140, 38)))
         
         st_name = STAGE_NAMES.get(stage, "HIGHWAY")
-        txt_name = self.font_sub.render(st_name, True, COLOR_CYAN)
-        surface.blit(txt_name, (26, 54))
+        txt_name = self.font_stage_name.render(st_name, True, COLOR_CYAN)
+        surface.blit(txt_name, txt_name.get_rect(center=(140, 76)))
         
-        txt_tele = self.font_caption.render("GPS TRACK TELEMETRY", True, (180, 220, 250))
-        surface.blit(txt_tele, (26, 80))
+        txt_tele = self.font_desc.render("GPS TRACK TELEMETRY", True, (180, 220, 250))
+        surface.blit(txt_tele, txt_tele.get_rect(center=(140, 112)))
         
         # Dedicated Bottom Distance Telemetry Card
         card_x = 16
@@ -81,12 +83,12 @@ class HudRenderer:
 
         # Vertical Mini-Map Track
         track_x = 155
-        track_top = 158
+        track_top = 182
         track_bot = card_y - 48
         track_len = track_bot - track_top
         
         # Goal Badge
-        goal_rect = pygame.Rect(95, track_top - 32, 120, 28)
+        goal_rect = pygame.Rect(95, track_top - 30, 120, 26)
         pygame.draw.rect(surface, (10, 20, 36), goal_rect, border_radius=4)
         pygame.draw.rect(surface, COLOR_GOLD, goal_rect, 1, border_radius=4)
         txt_goal = self.font_caption.render("★ GOAL ★", True, COLOR_GOLD)
@@ -281,8 +283,8 @@ class HudRenderer:
         surface.blit(txt_sc_val, (rx + 24, score_y + 45))
         
         env_note = STAGE_ENV_NOTES.get(stage, "")
-        txt_env = self.font_caption.render(env_note, True, (190, 220, 250))
-        surface.blit(txt_env, (rx + 24, score_y + 108))
+        txt_env = self.font_desc.render(env_note, True, (190, 220, 250))
+        surface.blit(txt_env, (rx + 24, score_y + 110))
         
         # 5. Controls Guide Deck
         ctrl_y = 785
@@ -543,9 +545,9 @@ class HudRenderer:
         dim_surf.fill((0, 0, 0, 120))
         surface.blit(dim_surf, (280, 0))
         
-        # Pause badge box
-        box_w = 540
-        box_h = 145
+        # Pause badge box (Generous margins for Steam Deck handheld readability)
+        box_w = 640
+        box_h = 150
         bg_rect = pygame.Rect(cx - box_w // 2, cy - box_h // 2, box_w, box_h)
         pygame.draw.rect(surface, (10, 15, 26), bg_rect, border_radius=10)
         pygame.draw.rect(surface, COLOR_GOLD, bg_rect, 3, border_radius=10)
@@ -563,39 +565,40 @@ class HudRenderer:
         cy = surface_h // 2
         
         if stage == TOTAL_STAGES:
-            # All 5 stages cleared!
-            box_w = 700
-            box_h = 240
+            # All stages cleared! Generous 880px box width guarantees 60px padding
+            box_w = 880
+            box_h = 260
             r_box = pygame.Rect(cx - box_w // 2, cy - box_h // 2, box_w, box_h)
-            pygame.draw.rect(surface, (10, 20, 36), r_box, border_radius=10)
-            pygame.draw.rect(surface, COLOR_GOLD, r_box, 3, border_radius=10)
+            pygame.draw.rect(surface, (10, 20, 36), r_box, border_radius=12)
+            pygame.draw.rect(surface, COLOR_GOLD, r_box, 3, border_radius=12)
             
             txt_h = self.font_title.render("ALL STAGES CLEARED!", True, COLOR_GOLD)
-            surface.blit(txt_h, txt_h.get_rect(center=(cx, cy - 50)))
+            surface.blit(txt_h, txt_h.get_rect(center=(cx, cy - 56)))
             
             txt_m = self.font_menu.render("YOU MASTERED ALL HIRAGANA!", True, COLOR_CYAN)
             surface.blit(txt_m, txt_m.get_rect(center=(cx, cy + 10)))
             
             txt_f = self.font_sub.render("RETURNING TO TITLE SCREEN...", True, COLOR_WHITE)
-            surface.blit(txt_f, txt_f.get_rect(center=(cx, cy + 65)))
+            surface.blit(txt_f, txt_f.get_rect(center=(cx, cy + 68)))
         else:
-            box_w = 660
-            box_h = 210
+            # Per-stage clear box: 860px width comfortably contains 725px button prompt
+            box_w = 860
+            box_h = 220
             r_box = pygame.Rect(cx - box_w // 2, cy - box_h // 2, box_w, box_h)
-            pygame.draw.rect(surface, (10, 20, 36), r_box, border_radius=10)
-            pygame.draw.rect(surface, COLOR_GOLD, r_box, 3, border_radius=10)
+            pygame.draw.rect(surface, (10, 20, 36), r_box, border_radius=12)
+            pygame.draw.rect(surface, COLOR_GOLD, r_box, 3, border_radius=12)
             
             txt_h = self.font_title.render(f"STAGE 0{stage} CLEARED!", True, COLOR_GOLD)
-            surface.blit(txt_h, txt_h.get_rect(center=(cx, cy - 35)))
+            surface.blit(txt_h, txt_h.get_rect(center=(cx, cy - 36)))
             
             txt_f = self.font_sub.render("PRESS [SPACE] / [ENTER] / GAMEPAD [A] FOR NEXT STAGE", True, COLOR_CYAN)
-            surface.blit(txt_f, txt_f.get_rect(center=(cx, cy + 35)))
+            surface.blit(txt_f, txt_f.get_rect(center=(cx, cy + 36)))
 
     def render_game_over_overlay(self, surface: pygame.Surface):
         surface_h = surface.get_height()
         cx = 760
         cy = surface_h // 2
-        box_w = 600
+        box_w = 780
         box_h = 210
         r_box = pygame.Rect(cx - box_w // 2, cy - box_h // 2, box_w, box_h)
         pygame.draw.rect(surface, (25, 10, 10), r_box, border_radius=10)
