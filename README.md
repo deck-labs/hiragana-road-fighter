@@ -3,7 +3,7 @@
 [![Language](https://img.shields.io/badge/Language-Python%203.13-blue.svg)](https://www.python.org/)
 [![Engine](https://img.shields.io/badge/Engine-Pygame%202.6-yellow.svg)](https://www.pygame.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%2F%20SteamOS%20(Steam%20Deck)-orange.svg)](https://store.steampowered.com/steamdeck)
-[![Stages](https://img.shields.io/badge/Stages-6%20Courses%20(A%2C%20KA%2C%20SA%2C%20TA%2C%20NA%2C%20HA)-brightgreen.svg)](#6-stages--hiragana-syllabus)
+[![Stages](https://img.shields.io/badge/Stages-7%20Courses%20(A%2C%20KA%2C%20SA%2C%20TA%2C%20NA%2C%20HA%2C%20MA)-brightgreen.svg)](#7-stages--hiragana-syllabus)
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
 [![Download AppImage](https://img.shields.io/badge/Download-Latest%20AppImage-00C853?style=flat&logo=appimage&logoColor=white)](https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage)
 
@@ -12,7 +12,7 @@ A retro Japanese Hiragana learning arcade racer built in Python (Pygame), inspir
 <div align="center">
 
 <a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
-  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APPIMAGE-v0.2.9%20(Linux%20%2F%20Steam%20Deck)-00C853?style=for-the-badge&logo=appimage&logoColor=white" height="46" alt="Download Latest AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APPIMAGE-v0.3.0%20(Linux%20%2F%20Steam%20Deck)-00C853?style=for-the-badge&logo=appimage&logoColor=white" height="46" alt="Download Latest AppImage">
 </a>
 
 <br>
@@ -29,7 +29,7 @@ You do **not** need to install Python, dependencies, or compile code. You can do
 <div align="center">
 
 <a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
-  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.2.9%20(Standalone%20x86__64)-00E676?style=for-the-badge&logo=linux&logoColor=black" height="48" alt="Download AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.3.0%20(Standalone%20x86__64)-00E676?style=for-the-badge&logo=linux&logoColor=black" height="48" alt="Download AppImage">
 </a>
 
 <br>
@@ -69,11 +69,15 @@ chmod +x Hiragana_Road_Fighter-x86_64.AppImage
 | :---: | :---: |
 | ![Stage 5](screenshots/hud_stage5.png) | ![Stage 6](screenshots/hud_stage6.png) |
 
+| Stage 7: Glacier Tundra (まみむめも) |
+| :---: |
+| ![Stage 7](screenshots/hud_stage7.png) |
+
 ---
 
-## 🏎️ 6 Stages & Hiragana Syllabus
+## 🏎️ 7 Stages & Hiragana Syllabus
 
-All 6 stages feature an identical 36,000-meter course length with distinct environmental scenery, road curvature, and Hiragana character sets:
+All 7 stages feature an identical 36,000-meter course length with distinct environmental scenery, road curvature, and Hiragana character sets:
 
 | Stage | Theme | Hiragana Set | Romaji Sounds |
 | :--- | :--- | :---: | :--- |
@@ -83,6 +87,7 @@ All 6 stages feature an identical 36,000-meter course length with distinct envir
 | **04** | **Mountain Pass** | `た` `ち` `つ` `て` `と` | `ta`, `chi`, `tsu`, `te`, `to` |
 | **05** | **Neon Metropolis** | `な` `に` `ぬ` `ね` `の` | `na`, `ni`, `nu`, `ne`, `no` |
 | **06** | **Volcano Caldera** | `は` `ひ` `ふ` `へ` `ほ` | `ha`, `hi`, `fu` / `hu`, `he`, `ho` |
+| **07** | **Glacier Tundra** | `ま` `み` `む` `め` `も` | `ma`, `mi`, `mu`, `me`, `mo` |
 
 ---
 
@@ -97,7 +102,7 @@ All 6 stages feature an identical 36,000-meter course length with distinct envir
    - **Mismatched Collision**: Costs **-15% Fuel** and triggers an impact spinout wobble!
 3. **Survive & Clear**:
    - Complete the 36,000-meter course before your fuel runs out.
-   - Clearing Stage 6 triggers the grand victory screen (**"ALL STAGES CLEARED!"**) and returns to the Title Screen.
+   - Clearing Stage 7 triggers the grand victory screen (**"ALL STAGES CLEARED!"**) and returns to the Title Screen.
 
 ---
 

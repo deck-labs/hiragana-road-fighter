@@ -302,7 +302,7 @@ class HudRenderer:
             "OPTIONS / AUDIO: [ESC] / [ENTER] / GAMEPAD [START]",
             "QUICK PAUSE: [P] / GAMEPAD [SELECT]",
             "QUIT TO DESKTOP: GAMEPAD [SELECT + START]",
-            "TARGET GOAL: 36,000 M // 6 TOTAL STAGES"
+            f"TARGET GOAL: 36,000 M // {TOTAL_STAGES} TOTAL STAGES"
         ]
         for idx, line in enumerate(lines):
             txt_l = self.font_caption.render(line, True, (235, 245, 255))

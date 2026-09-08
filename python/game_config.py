@@ -21,21 +21,27 @@ ROAD_WIDTH = GAME_W - (ROAD_MARGIN * 2.0)  # 640.0 px wide 4-lane highway
 PLAYER_SCREEN_Y = 840.0
 
 # Version & Release Metadata
-GAME_VERSION = "0.2.9"
+GAME_VERSION = "0.3.0"
 GITHUB_REPO = "deck-labs/hiragana-road-fighter"
 VERSION_CHECK_URL = "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/version.json"
 RELEASES_API_URL = "https://api.github.com/repos/deck-labs/hiragana-road-fighter/releases/latest"
 
-# Gameplay Mechanics & Balancing
-STAGE_TRACK_LENGTH = 36000.0   # Exactly 36,000 units per stage across all 6 stages
-GAME_SPEED_SCALE = 0.5         # 50% arcade speed scale for readable kana recognition
+# Gameplay Settings
+STAGE_TRACK_LENGTH = 36000.0
+GAME_SPEED_SCALE = 0.5
+BASE_SPEED = 80.0
+TURBO_SPEED = 240.0
+SPEED_ACCEL = 120.0
+SPEED_DECEL = 80.0
+BRAKE_DECEL = 220.0
+STEER_SPEED = 420.0
 MAX_FUEL = 100.0
-FUEL_REWARD = 30.0             # +30% fuel on correct Kana match
-FUEL_PENALTY = 15.0            # -15% fuel penalty on wrong car collision
+FUEL_REWARD = 30.0
+FUEL_PENALTY = 15.0
 SCORE_REWARD = 50.0
 
 # Total Stages
-TOTAL_STAGES = 6
+TOTAL_STAGES = 7
 
 STAGE_NAMES = {
     1: "FOREST HIGHWAY",
@@ -43,7 +49,8 @@ STAGE_NAMES = {
     3: "COASTAL BEACH",
     4: "MOUNTAIN PASS",
     5: "NEON METROPOLIS",
-    6: "VOLCANO CALDERA"
+    6: "VOLCANO CALDERA",
+    7: "GLACIER TUNDRA"
 }
 
 STAGE_ENV_NOTES = {
@@ -52,7 +59,8 @@ STAGE_ENV_NOTES = {
     3: "TROPICAL BEACH SHORELINE // CONTINUOUS SWEEPS",
     4: "MOUNTAIN PASS // ROCKY GORGE // TIGHT S-CURVES",
     5: "NEON EXPRESSWAY // HIGH-SPEED SWEEPS // SKYSCRAPERS",
-    6: "VOLCANIC OBSIDIAN RIDGE // MAGMA CRAGS // FAST APEXES"
+    6: "VOLCANIC OBSIDIAN RIDGE // MAGMA CRAGS // FAST APEXES",
+    7: "FROST GLACIER // POLAR ICEFALL // ICY APEXES"
 }
 
 STAGE_KANA = {
@@ -97,6 +105,13 @@ STAGE_KANA = {
         {"kana": "ふ", "romaji": "fu"},
         {"kana": "へ", "romaji": "he"},
         {"kana": "ほ", "romaji": "ho"}
+    ],
+    7: [
+        {"kana": "ま", "romaji": "ma"},
+        {"kana": "み", "romaji": "mi"},
+        {"kana": "む", "romaji": "mu"},
+        {"kana": "め", "romaji": "me"},
+        {"kana": "も", "romaji": "mo"}
     ]
 }
 

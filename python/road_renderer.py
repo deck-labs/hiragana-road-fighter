@@ -46,6 +46,8 @@ class RoadRenderer:
         self.stage5_gantries = []
         self.stage6_scenery = []
         self.stage6_magma_vents = []
+        self.stage7_scenery = []
+        self.stage7_ice_crystals = []
         
         self._load_assets()
         self._generate_scenery()
@@ -179,6 +181,30 @@ class RoadRenderer:
                 "radius": rng.uniform(16, 28)
             })
             vy += rng.uniform(220.0, 380.0)
+
+        # Stage 7: Glacier Tundra Scenery (snowy pines, frosted boulders, crystalline ice spires)
+        y = 180.0
+        while y < STAGE_TRACK_LENGTH - 800.0:
+            side = -1 if rng.random() < 0.5 else 1
+            offset_x = (GAME_X + 60.0) if side == -1 else (GAME_X + GAME_W - 60.0)
+            is_pine = (rng.random() < 0.5)
+            self.stage7_scenery.append({
+                "pos": (offset_x + rng.uniform(-25, 25), y),
+                "is_pine": is_pine
+            })
+            y += rng.uniform(80.0, 170.0)
+            
+        cy = 240.0
+        while cy < STAGE_TRACK_LENGTH - 600.0:
+            side = -1 if rng.random() < 0.5 else 1
+            c_x = (GAME_X + 80.0) if side == -1 else (GAME_X + GAME_W - 80.0)
+            self.stage7_ice_crystals.append({
+                "x": c_x + rng.uniform(-25, 25),
+                "y": cy,
+                "height": rng.uniform(30, 52),
+                "width": rng.uniform(16, 26)
+            })
+            cy += rng.uniform(160.0, 300.0)
 
     def get_road_edges(self, stage: int, world_y: float) -> tuple[float, float]:
         """Calculates (left_edge, right_edge) for any track coordinate."""
@@ -469,6 +495,61 @@ class RoadRenderer:
                     shift = -40.0 * (0.5 + 0.5 * math.cos(t * math.pi))
                     
             return (normal_left + shift, normal_right + shift)
+
+        if stage == 7:
+            # Glacier Tundra - Sub-zero alpine bends, sweeping icefield curves, technical frozen chicanes
+            if world_y < 0.0 or world_y >= STAGE_TRACK_LENGTH - 2400.0:
+                return (normal_left, normal_right)
+                
+            seg_len = 2400.0
+            seg_idx = int(world_y / seg_len)
+            seg_pos = world_y % seg_len
+            pattern = abs(seg_idx) % 4
+            
+            shift = 0.0
+            if pattern == 0:
+                # Glacier Shelf Left Sweeper
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = -115.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1550.0:
+                    shift = -115.0
+                elif 1550.0 <= seg_pos < 2150.0:
+                    t = (seg_pos - 1550.0) / 600.0
+                    shift = -115.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 1:
+                # Glacier Shelf Right Sweeper
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = 115.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1550.0:
+                    shift = 115.0
+                elif 1550.0 <= seg_pos < 2150.0:
+                    t = (seg_pos - 1550.0) / 600.0
+                    shift = 115.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 2:
+                # Frozen Icefall Chicane (Left then Right)
+                if 200.0 <= seg_pos < 700.0:
+                    t = (seg_pos - 200.0) / 500.0
+                    shift = -95.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 700.0 <= seg_pos < 1550.0:
+                    t = (seg_pos - 700.0) / 850.0
+                    shift = -95.0 + 190.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 1550.0 <= seg_pos < 2050.0:
+                    t = (seg_pos - 1550.0) / 500.0
+                    shift = 95.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            else:
+                # Summit Icefield Undulating Straight
+                if 350.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 350.0) / 500.0
+                    shift = 45.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1450.0:
+                    shift = 45.0
+                elif 1450.0 <= seg_pos < 1950.0:
+                    t = (seg_pos - 1450.0) / 500.0
+                    shift = 45.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+                    
+            return (normal_left + shift, normal_right + shift)
             
         return (normal_left, normal_right)
 
@@ -502,8 +583,10 @@ class RoadRenderer:
             self._render_stage4(surface)
         elif stage == 5:
             self._render_stage5(surface)
-        else:
+        elif stage == 6:
             self._render_stage6(surface)
+        else:
+            self._render_stage7(surface)
             
         self._render_finish_line(surface)
 
@@ -981,6 +1064,135 @@ class RoadRenderer:
             if int(world_y) % 40 < 6:
                 pygame.draw.rect(surface, (255, 195, 40), (r_left - 12, y + 1, 4, 4))
                 pygame.draw.rect(surface, (255, 195, 40), (r_right + 8, y + 1, 4, 4))
+
+    def _render_stage7(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
+        
+        # 1. Polar Twilight Sky & Glacial Bedrock Base
+        pygame.draw.rect(surface, (10, 16, 28), (GAME_X, 0, GAME_W, scr_h))
+        
+        # 2. Frozen Rock Ground on Verges
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X, 0, ROAD_MARGIN, scr_h))
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, scr_h))
+        
+        # Frost & Snowfield overlay (sub-zero glacial white-cyan tint)
+        frost_overlay = pygame.Surface((int(ROAD_MARGIN), scr_h), pygame.SRCALPHA)
+        frost_overlay.fill((210, 235, 255, 195))
+        surface.blit(frost_overlay, (GAME_X, 0))
+        surface.blit(frost_overlay, (GAME_X + GAME_W - ROAD_MARGIN, 0))
+        
+        # 3. Crystalline Ice Spires / Frozen Formations in the verges
+        import time
+        now = time.time()
+        for crystal in self.stage7_ice_crystals:
+            cx, cy = crystal["x"], crystal["y"]
+            ch, cw = crystal["height"], crystal["width"]
+            scr_y = ply_y - (cy - self.track_distance)
+            if -60 <= scr_y <= scr_h + 60:
+                # Sparkling shimmer factor
+                shimmer = 0.5 + 0.5 * math.sin(now * 4.0 + cy * 0.05)
+                # Outer diamond ice spire
+                pts_outer = [
+                    (cx, scr_y - ch),
+                    (cx + cw * 0.5, scr_y - ch * 0.3),
+                    (cx, scr_y),
+                    (cx - cw * 0.5, scr_y - ch * 0.3)
+                ]
+                # Ice-blue outer body
+                pygame.draw.polygon(surface, (100, 205, 255), pts_outer)
+                pygame.draw.polygon(surface, (180, 235, 255), pts_outer, 1)
+                
+                # Inner crystalline facet highlight
+                pts_inner = [
+                    (cx, scr_y - ch),
+                    (cx + cw * 0.25, scr_y - ch * 0.3),
+                    (cx, scr_y - 2),
+                    (cx, scr_y - ch)
+                ]
+                highlight_val = int(220 + 35 * shimmer)
+                pygame.draw.polygon(surface, (highlight_val, 250, 255), pts_inner)
+                
+                # Apex twinkle glint
+                glint_radius = int(2 + 2 * shimmer)
+                pygame.draw.circle(surface, (255, 255, 255), (int(cx), int(scr_y - ch)), glint_radius)
+
+        # 4. Snowy Evergreens & Snow-Capped Boulders
+        for item in self.stage7_scenery:
+            px, py = item["pos"]
+            is_pine = item["is_pine"]
+            scr_y = ply_y - (py - self.track_distance)
+            if -100 <= scr_y <= scr_h + 100:
+                if is_pine and self.tex_pine_tree:
+                    pine_surf = pygame.transform.scale(self.tex_pine_tree, (48, 64))
+                    surface.blit(pine_surf, (px - 24, scr_y - 64))
+                    # Crisp white snow caps on the pine foliage tiers
+                    # Top tier snow cap
+                    pygame.draw.polygon(surface, (248, 252, 255), [
+                        (px, scr_y - 66),
+                        (px + 10, scr_y - 52),
+                        (px, scr_y - 50),
+                        (px - 10, scr_y - 52)
+                    ])
+                    # Middle tier snow cap
+                    pygame.draw.polygon(surface, (240, 248, 255), [
+                        (px - 16, scr_y - 38),
+                        (px, scr_y - 42),
+                        (px + 16, scr_y - 38),
+                        (px + 12, scr_y - 34),
+                        (px - 12, scr_y - 34)
+                    ])
+                    # Bottom tier snow cap
+                    pygame.draw.polygon(surface, (232, 244, 255), [
+                        (px - 22, scr_y - 20),
+                        (px, scr_y - 24),
+                        (px + 22, scr_y - 20),
+                        (px + 18, scr_y - 17),
+                        (px - 18, scr_y - 17)
+                    ])
+                elif not is_pine and self.tex_boulder:
+                    boulder_surf = pygame.transform.scale(self.tex_boulder, (52, 40))
+                    surface.blit(boulder_surf, (px - 26, scr_y - 40))
+                    # Crisp snow cap on top of boulder
+                    pygame.draw.ellipse(surface, (242, 250, 255), (px - 22, scr_y - 42, 44, 18))
+                    pygame.draw.ellipse(surface, (185, 220, 245), (px - 22, scr_y - 42, 44, 18), 1)
+
+        # 5. Slices: Roadway, Asphalt, Glacier Curbs, Road Markings
+        slice_h = 6
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
+            r_left, r_right = self.get_road_edges(7, world_y)
+            r_w = r_right - r_left
+            
+            # Frosted Heavy Guard Barrier (Steel blue with icy trim)
+            pygame.draw.rect(surface, (45, 62, 80), (r_left - 16.0, y, 16, slice_h))
+            pygame.draw.rect(surface, (45, 62, 80), (r_right, y, 16, slice_h))
+            pygame.draw.rect(surface, (150, 200, 235), (r_left - 16.0, y, 2, slice_h))
+            pygame.draw.rect(surface, (150, 200, 235), (r_right + 14.0, y, 2, slice_h))
+            
+            # Frosted Slate Asphalt Road Surface
+            pygame.draw.rect(surface, (32, 38, 50), (r_left, y, r_w, slice_h))
+            
+            # Dashed Lane Dividers (Crisp Snow White)
+            lane_w = r_w / 4.0
+            dash_cycle = (int(y + self.track_distance)) % 60
+            if dash_cycle < 30:
+                pygame.draw.rect(surface, (245, 250, 255), (r_left + lane_w - 1.5, y, 3, slice_h))
+                pygame.draw.rect(surface, (245, 250, 255), (r_left + lane_w * 3.0 - 1.5, y, 3, slice_h))
+                # Double Glacier Cyan Center Line
+                pygame.draw.rect(surface, (0, 215, 255), (r_left + lane_w * 2.0 - 3.0, y, 2, slice_h))
+                pygame.draw.rect(surface, (0, 215, 255), (r_left + lane_w * 2.0 + 1.0, y, 2, slice_h))
+                
+            # Glacier Curbs (Alternating Vivid Glacier Cyan & Snow White)
+            curb_cycle = (int(y + self.track_distance) // 18) % 2
+            curb_col = (0, 195, 245) if curb_cycle == 0 else (245, 250, 255)
+            pygame.draw.rect(surface, curb_col, (r_left - 8, y, 8, slice_h))
+            pygame.draw.rect(surface, curb_col, (r_right, y, 8, slice_h))
+            
+            # Diamond blue roadside ice reflectors every 40m
+            if int(world_y) % 40 < 6:
+                pygame.draw.rect(surface, (140, 235, 255), (r_left - 12, y + 1, 4, 4))
+                pygame.draw.rect(surface, (140, 235, 255), (r_right + 8, y + 1, 4, 4))
 
     def _render_finish_line(self, surface: pygame.Surface):
         scr_h = self.screen_height
