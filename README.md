@@ -12,7 +12,7 @@ A retro Japanese Hiragana learning arcade racer built in Python (Pygame), inspir
 <div align="center">
 
 <a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
-  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APPIMAGE-v0.2.8%20(Linux%20%2F%20Steam%20Deck)-00C853?style=for-the-badge&logo=appimage&logoColor=white" height="46" alt="Download Latest AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20LATEST%20APPIMAGE-v0.2.9%20(Linux%20%2F%20Steam%20Deck)-00C853?style=for-the-badge&logo=appimage&logoColor=white" height="46" alt="Download Latest AppImage">
 </a>
 
 <br>
@@ -29,7 +29,7 @@ You do **not** need to install Python, dependencies, or compile code. You can do
 <div align="center">
 
 <a href="https://github.com/deck-labs/hiragana-road-fighter/raw/main/Hiragana_Road_Fighter-x86_64.AppImage">
-  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.2.8%20(Standalone%20x86__64)-00E676?style=for-the-badge&logo=linux&logoColor=black" height="48" alt="Download AppImage">
+  <img src="https://img.shields.io/badge/⬇%20DOWNLOAD%20APPIMAGE-v0.2.9%20(Standalone%20x86__64)-00E676?style=for-the-badge&logo=linux&logoColor=black" height="48" alt="Download AppImage">
 </a>
 
 <br>

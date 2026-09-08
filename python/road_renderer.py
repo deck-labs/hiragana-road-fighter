@@ -417,10 +417,10 @@ class RoadRenderer:
 
         if stage == 6:
             # Volcano Caldera - Technical volcanic ridge curves, sharp apexes, and fast straights along crater lip
-            if world_y >= STAGE_TRACK_LENGTH - 2400.0:
+            if world_y < 0.0 or world_y >= STAGE_TRACK_LENGTH - 2400.0:
                 return (normal_left, normal_right)
                 
-            seg_len = 2200.0
+            seg_len = 2400.0
             seg_idx = int(world_y / seg_len)
             seg_pos = world_y % seg_len
             pattern = abs(seg_idx) % 4
@@ -428,44 +428,44 @@ class RoadRenderer:
             shift = 0.0
             if pattern == 0:
                 # Caldera Rim Left Sweeper
-                if 250.0 <= seg_pos < 800.0:
-                    t = (seg_pos - 250.0) / 550.0
+                if 300.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 300.0) / 550.0
                     shift = -110.0 * (0.5 - 0.5 * math.cos(t * math.pi))
-                elif 800.0 <= seg_pos < 1450.0:
+                elif 850.0 <= seg_pos < 1550.0:
                     shift = -110.0
-                elif 1450.0 <= seg_pos < 2000.0:
-                    t = (seg_pos - 1450.0) / 550.0
+                elif 1550.0 <= seg_pos < 2100.0:
+                    t = (seg_pos - 1550.0) / 550.0
                     shift = -110.0 * (0.5 + 0.5 * math.cos(t * math.pi))
             elif pattern == 1:
                 # Caldera Rim Right Sweeper
-                if 250.0 <= seg_pos < 800.0:
-                    t = (seg_pos - 250.0) / 550.0
+                if 300.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 300.0) / 550.0
                     shift = 110.0 * (0.5 - 0.5 * math.cos(t * math.pi))
-                elif 800.0 <= seg_pos < 1450.0:
+                elif 850.0 <= seg_pos < 1550.0:
                     shift = 110.0
-                elif 1450.0 <= seg_pos < 2000.0:
-                    t = (seg_pos - 1450.0) / 550.0
+                elif 1550.0 <= seg_pos < 2100.0:
+                    t = (seg_pos - 1550.0) / 550.0
                     shift = 110.0 * (0.5 + 0.5 * math.cos(t * math.pi))
             elif pattern == 2:
                 # Technical Volcanic Chicane (Right then Left)
-                if 200.0 <= seg_pos < 700.0:
-                    t = (seg_pos - 200.0) / 500.0
+                if 250.0 <= seg_pos < 750.0:
+                    t = (seg_pos - 250.0) / 500.0
                     shift = 95.0 * (0.5 - 0.5 * math.cos(t * math.pi))
-                elif 700.0 <= seg_pos < 1550.0:
-                    t = (seg_pos - 700.0) / 850.0
+                elif 750.0 <= seg_pos < 1600.0:
+                    t = (seg_pos - 750.0) / 850.0
                     shift = 95.0 - 190.0 * (0.5 - 0.5 * math.cos(t * math.pi))
-                elif 1550.0 <= seg_pos < 2050.0:
-                    t = (seg_pos - 1550.0) / 500.0
+                elif 1600.0 <= seg_pos < 2100.0:
+                    t = (seg_pos - 1600.0) / 500.0
                     shift = -95.0 * (0.5 + 0.5 * math.cos(t * math.pi))
             else:
                 # Ridge Crest Straight with gentle curve
-                if 300.0 <= seg_pos < 800.0:
-                    t = (seg_pos - 300.0) / 500.0
+                if 400.0 <= seg_pos < 900.0:
+                    t = (seg_pos - 400.0) / 500.0
                     shift = -40.0 * (0.5 - 0.5 * math.cos(t * math.pi))
-                elif 800.0 <= seg_pos < 1400.0:
+                elif 900.0 <= seg_pos < 1500.0:
                     shift = -40.0
-                elif 1400.0 <= seg_pos < 1900.0:
-                    t = (seg_pos - 1400.0) / 500.0
+                elif 1500.0 <= seg_pos < 2000.0:
+                    t = (seg_pos - 1500.0) / 500.0
                     shift = -40.0 * (0.5 + 0.5 * math.cos(t * math.pi))
                     
             return (normal_left + shift, normal_right + shift)
