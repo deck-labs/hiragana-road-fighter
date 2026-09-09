@@ -51,6 +51,12 @@ class RoadRenderer:
         self.stage8_sakura_trees = []
         self.stage8_lanterns = []
         self.stage8_petals = []
+        self.stage9_cacti = []
+        self.stage9_mesas = []
+        self.stage9_tumbleweeds = []
+        self.stage10_grandstands = []
+        self.stage10_banners = []
+        self.stage10_searchlights = []
         
         self._load_assets()
         self._generate_scenery()
@@ -247,6 +253,65 @@ class RoadRenderer:
                     (255, 165, 185)
                 ])
             })
+
+        # Stage 9: Saguaro Cacti, Sandstone Mesas, and Drifting Tumbleweeds
+        y = 150.0
+        while y < STAGE_TRACK_LENGTH - 800.0:
+            side = -1 if rng.random() < 0.5 else 1
+            offset_x = (GAME_X + 60.0) if side == -1 else (GAME_X + GAME_W - 60.0)
+            self.stage9_cacti.append({
+                "pos": (offset_x + rng.uniform(-20, 20), y),
+                "h": rng.uniform(42, 66),
+                "arms": rng.choice([1, 2, 3]),
+                "arm_y": rng.uniform(0.35, 0.65)
+            })
+            y += rng.uniform(75.0, 160.0)
+
+        my = 260.0
+        while my < STAGE_TRACK_LENGTH - 1000.0:
+            side = -1 if rng.random() < 0.5 else 1
+            mx = (GAME_X + 75.0) if side == -1 else (GAME_X + GAME_W - 75.0)
+            self.stage9_mesas.append({
+                "pos": (mx + rng.uniform(-20, 20), my),
+                "w": rng.uniform(60, 95),
+                "h": rng.uniform(36, 52),
+                "col_idx": rng.choice([0, 1, 2])
+            })
+            my += rng.uniform(280.0, 450.0)
+
+        for _ in range(40):
+            self.stage9_tumbleweeds.append({
+                "rx": rng.uniform(0.0, float(GAME_W)),
+                "ry": rng.uniform(0.0, 1200.0),
+                "speed_y": rng.uniform(140.0, 260.0),
+                "speed_x": rng.uniform(-40.0, 40.0),
+                "rad": rng.uniform(6.0, 12.0),
+                "rot": rng.uniform(0.0, 6.28)
+            })
+
+        # Stage 10: Circuit Grandstands and Celebration Searchlights
+        gy = 200.0
+        while gy < STAGE_TRACK_LENGTH - 1000.0:
+            side = -1 if rng.random() < 0.5 else 1
+            gx = (GAME_X + 50.0) if side == -1 else (GAME_X + GAME_W - 50.0)
+            self.stage10_grandstands.append({
+                "pos": (gx, gy),
+                "w": 75.0,
+                "h": 50.0,
+                "banner_col": rng.choice([(225, 40, 40), (40, 130, 230), (245, 185, 20), (35, 185, 85)])
+            })
+            gy += rng.uniform(220.0, 360.0)
+
+        sy = 300.0
+        while sy < STAGE_TRACK_LENGTH - 1200.0:
+            side = -1 if rng.random() < 0.5 else 1
+            sx = (GAME_X + 85.0) if side == -1 else (GAME_X + GAME_W - 85.0)
+            self.stage10_searchlights.append({
+                "pos": (sx, sy),
+                "phase": rng.uniform(0.0, 6.28),
+                "sweep_speed": rng.uniform(1.2, 2.4)
+            })
+            sy += rng.uniform(320.0, 500.0)
 
     def get_road_edges(self, stage: int, world_y: float) -> tuple[float, float]:
         """Calculates (left_edge, right_edge) for any track coordinate."""
@@ -648,6 +713,116 @@ class RoadRenderer:
                     shift = 40.0 * (0.5 + 0.5 * math.cos(t * math.pi))
                     
             return (normal_left + shift, normal_right + shift)
+
+        if stage == 9:
+            # Sunset Canyon - High-speed desert gorge sweeps, canyon wall bends, undulating sandstone straights
+            if world_y < 0.0 or world_y >= STAGE_TRACK_LENGTH - 2400.0:
+                return (normal_left, normal_right)
+                
+            seg_len = 2400.0
+            seg_idx = int(world_y / seg_len)
+            seg_pos = world_y % seg_len
+            pattern = abs(seg_idx) % 4
+            
+            shift = 0.0
+            if pattern == 0:
+                # Canyon Wall Left Sweeper
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = -125.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1550.0:
+                    shift = -125.0
+                elif 1550.0 <= seg_pos < 2150.0:
+                    t = (seg_pos - 1550.0) / 600.0
+                    shift = -125.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 1:
+                # Red Rock Mesa Right Bank
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = 125.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1550.0:
+                    shift = 125.0
+                elif 1550.0 <= seg_pos < 2150.0:
+                    t = (seg_pos - 1550.0) / 600.0
+                    shift = 125.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 2:
+                # Sandstone Gorge S-Chicane
+                if 200.0 <= seg_pos < 700.0:
+                    t = (seg_pos - 200.0) / 500.0
+                    shift = -95.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 700.0 <= seg_pos < 1550.0:
+                    t = (seg_pos - 700.0) / 850.0
+                    shift = -95.0 + 190.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 1550.0 <= seg_pos < 2050.0:
+                    t = (seg_pos - 1550.0) / 500.0
+                    shift = 95.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            else:
+                # Desert Highway Straightaway
+                if 300.0 <= seg_pos < 800.0:
+                    t = (seg_pos - 300.0) / 500.0
+                    shift = 35.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 800.0 <= seg_pos < 1400.0:
+                    shift = 35.0
+                elif 1400.0 <= seg_pos < 1900.0:
+                    t = (seg_pos - 1400.0) / 500.0
+                    shift = 35.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+                    
+            return (normal_left + shift, normal_right + shift)
+
+        if stage == 10:
+            # Fuji Speedway - Grand Championship formula circuit, 100R carousel, technical Dunlop chicane, main straight
+            if world_y < 0.0 or world_y >= STAGE_TRACK_LENGTH - 2400.0:
+                return (normal_left, normal_right)
+                
+            seg_len = 2400.0
+            seg_idx = int(world_y / seg_len)
+            seg_pos = world_y % seg_len
+            pattern = abs(seg_idx) % 4
+            
+            shift = 0.0
+            if pattern == 0:
+                # Dunlop Technical S-Chicane
+                if 200.0 <= seg_pos < 700.0:
+                    t = (seg_pos - 200.0) / 500.0
+                    shift = -110.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 700.0 <= seg_pos < 1550.0:
+                    t = (seg_pos - 700.0) / 850.0
+                    shift = -110.0 + 220.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 1550.0 <= seg_pos < 2050.0:
+                    t = (seg_pos - 1550.0) / 500.0
+                    shift = 110.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 1:
+                # 100R High-Speed Carousel Right
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = 130.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1600.0:
+                    shift = 130.0
+                elif 1600.0 <= seg_pos < 2200.0:
+                    t = (seg_pos - 1600.0) / 600.0
+                    shift = 130.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 2:
+                # Hairpin Apex Left
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = -130.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1600.0:
+                    shift = -130.0
+                elif 1600.0 <= seg_pos < 2200.0:
+                    t = (seg_pos - 1600.0) / 600.0
+                    shift = -130.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            else:
+                # Fuji Grand Championship Main Straightaway
+                if 350.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 350.0) / 500.0
+                    shift = 30.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1450.0:
+                    shift = 30.0
+                elif 1450.0 <= seg_pos < 1950.0:
+                    t = (seg_pos - 1450.0) / 500.0
+                    shift = 30.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+                    
+            return (normal_left + shift, normal_right + shift)
             
         return (normal_left, normal_right)
 
@@ -685,8 +860,12 @@ class RoadRenderer:
             self._render_stage6(surface)
         elif stage == 7:
             self._render_stage7(surface)
-        else:
+        elif stage == 8:
             self._render_stage8(surface)
+        elif stage == 9:
+            self._render_stage9(surface)
+        else:
+            self._render_stage10(surface)
             
         self._render_finish_line(surface)
 
@@ -1451,6 +1630,241 @@ class RoadRenderer:
             sz = int(petal["size"])
             pygame.draw.ellipse(surface, petal["color"], (int(px - sz), int(py - sz // 2), sz * 2, max(2, sz)))
             pygame.draw.circle(surface, (255, 240, 245), (int(px), int(py)), max(1, sz // 3))
+
+    def _render_stage9(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
+        
+        # 1. Sunset Canyon Dusk Sky (rich crimson-amber twilight base)
+        pygame.draw.rect(surface, (54, 22, 26), (GAME_X, 0, GAME_W, scr_h))
+        
+        # 2. Sandstone Desert Verges
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X, 0, ROAD_MARGIN, scr_h))
+        self.draw_tiled_texture(surface, self.tex_rock_ground, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, scr_h))
+        
+        # Warm sunset amber wash overlay on rock verges
+        sand_overlay = pygame.Surface((int(ROAD_MARGIN), scr_h), pygame.SRCALPHA)
+        sand_overlay.fill((190, 75, 35, 140))
+        surface.blit(sand_overlay, (GAME_X, 0))
+        surface.blit(sand_overlay, (GAME_X + GAME_W - ROAD_MARGIN, 0))
+        
+        # 3. Distant Sandstone Mesas & Buttes
+        for mesa in self.stage9_mesas:
+            mx, my = mesa["pos"]
+            mw, mh = mesa["w"], mesa["h"]
+            col_idx = mesa["col_idx"]
+            scr_y = ply_y - (my - self.track_distance)
+            if -80 <= scr_y <= scr_h + 80:
+                col_base = (145, 62, 38) if col_idx == 0 else ((160, 68, 42) if col_idx == 1 else (135, 55, 34))
+                col_top = (175, 78, 48) if col_idx == 0 else ((190, 85, 52) if col_idx == 1 else (165, 70, 42))
+                # Base mesa slope
+                pygame.draw.polygon(surface, col_base, [
+                    (mx - mw * 0.5, scr_y),
+                    (mx - mw * 0.35, scr_y - mh * 0.5),
+                    (mx + mw * 0.35, scr_y - mh * 0.5),
+                    (mx + mw * 0.5, scr_y)
+                ])
+                # Top sheer plateau
+                pygame.draw.polygon(surface, col_top, [
+                    (mx - mw * 0.35, scr_y - mh * 0.5),
+                    (mx - mw * 0.30, scr_y - mh),
+                    (mx + mw * 0.30, scr_y - mh),
+                    (mx + mw * 0.35, scr_y - mh * 0.5)
+                ])
+                # Sunlit plateau rim
+                pygame.draw.line(surface, (235, 135, 75), (mx - mw * 0.30, scr_y - mh), (mx + mw * 0.30, scr_y - mh), 2)
+
+        # 4. Towering Saguaro Cacti along Roadside
+        for cactus in self.stage9_cacti:
+            cx, cy = cactus["pos"]
+            ch = cactus["h"]
+            arms = cactus["arms"]
+            arm_y = cactus["arm_y"]
+            scr_y = ply_y - (cy - self.track_distance)
+            if -90 <= scr_y <= scr_h + 90:
+                # Main trunk
+                pygame.draw.rect(surface, (36, 78, 45), (cx - 5, scr_y - ch, 10, ch), border_radius=4)
+                pygame.draw.line(surface, (55, 110, 65), (cx - 1, scr_y - ch + 2), (cx - 1, scr_y - 2), 2)
+                # Left branching arm
+                ay1 = int(scr_y - ch * arm_y)
+                ay2 = int(scr_y - ch * (arm_y + 0.32))
+                pygame.draw.lines(surface, (36, 78, 45), False, [(cx - 4, ay1), (cx - 16, ay1), (cx - 16, ay2)], 5)
+                pygame.draw.circle(surface, (36, 78, 45), (int(cx - 16), int(ay2)), 3)
+                # Right branching arm
+                if arms >= 2:
+                    ry1 = int(scr_y - ch * (arm_y + 0.12))
+                    ry2 = int(scr_y - ch * (arm_y + 0.44))
+                    pygame.draw.lines(surface, (36, 78, 45), False, [(cx + 4, ry1), (cx + 16, ry1), (cx + 16, ry2)], 5)
+                    pygame.draw.circle(surface, (36, 78, 45), (int(cx + 16), int(ry2)), 3)
+
+        # 5. Slices: Roadway, Asphalt, Sunset Curbs, Road Markings
+        slice_h = 6
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
+            r_left, r_right = self.get_road_edges(9, world_y)
+            r_w = r_right - r_left
+            
+            # Heavy Canyon Steel Guard Barrier (Dark bronze with amber trim)
+            pygame.draw.rect(surface, (55, 34, 30), (r_left - 16.0, y, 16, slice_h))
+            pygame.draw.rect(surface, (55, 34, 30), (r_right, y, 16, slice_h))
+            pygame.draw.rect(surface, (255, 165, 45), (r_left - 16.0, y, 2, slice_h))
+            pygame.draw.rect(surface, (255, 165, 45), (r_right + 14.0, y, 2, slice_h))
+            
+            # Sun-Baked Sandstone Slate Asphalt
+            pygame.draw.rect(surface, (38, 35, 38), (r_left, y, r_w, slice_h))
+            
+            # Dashed Lane Dividers (Sun-Bleached White)
+            lane_w = r_w / 4.0
+            dash_cycle = (int(y + self.track_distance)) % 60
+            if dash_cycle < 30:
+                pygame.draw.rect(surface, (245, 235, 220), (r_left + lane_w - 1.5, y, 3, slice_h))
+                pygame.draw.rect(surface, (245, 235, 220), (r_left + lane_w * 3.0 - 1.5, y, 3, slice_h))
+                # Double Sunset Sunburst Center Line
+                pygame.draw.rect(surface, (255, 170, 30), (r_left + lane_w * 2.0 - 3.0, y, 2, slice_h))
+                pygame.draw.rect(surface, (255, 170, 30), (r_left + lane_w * 2.0 + 1.0, y, 2, slice_h))
+                
+            # Curbs: Alternating Sunset Amber and Obsidian Dark
+            curb_cycle = (int(y + self.track_distance) // 18) % 2
+            curb_col = (255, 140, 25) if curb_cycle == 0 else (28, 22, 26)
+            pygame.draw.rect(surface, curb_col, (r_left - 8, y, 8, slice_h))
+            pygame.draw.rect(surface, curb_col, (r_right, y, 8, slice_h))
+            
+            # Glowing amber canyon reflectors every 40m
+            if int(world_y) % 40 < 6:
+                pygame.draw.rect(surface, (255, 190, 50), (r_left - 12, y + 1, 4, 4))
+                pygame.draw.rect(surface, (255, 190, 50), (r_right + 8, y + 1, 4, 4))
+
+        # 6. Drifting Tumbleweeds
+        for weed in self.stage9_tumbleweeds:
+            px = GAME_X + (weed["rx"] + self.frames * (weed["speed_x"] / 60.0)) % GAME_W
+            py = (weed["ry"] + self.frames * (weed["speed_y"] / 60.0) + self.track_distance * 0.20) % scr_h
+            rad = weed["rad"]
+            pygame.draw.circle(surface, (155, 115, 75), (int(px), int(py)), int(rad), 2)
+            pygame.draw.line(surface, (135, 95, 60), (px - rad * 0.7, py), (px + rad * 0.7, py), 2)
+            pygame.draw.line(surface, (135, 95, 60), (px, py - rad * 0.7), (px, py + rad * 0.7), 2)
+
+    def _render_stage10(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
+        import time
+        now = time.time()
+        
+        # 1. Fuji Dawn Sunrise Sky
+        pygame.draw.rect(surface, (18, 24, 46), (GAME_X, 0, GAME_W, scr_h))
+        # Radiant golden dawn horizon
+        horizon_h = int(scr_h * 0.35)
+        for gy in range(horizon_h):
+            t_grad = gy / horizon_h
+            col_r = int(18 + (230 - 18) * t_grad)
+            col_g = int(24 + (140 - 24) * t_grad)
+            col_b = int(46 + (60 - 46) * t_grad)
+            pygame.draw.line(surface, (col_r, col_g, col_b), (GAME_X, gy), (GAME_X + GAME_W, gy))
+            
+        # Mt. Fuji Silhouette on the horizon
+        fuji_cx = GAME_X + GAME_W // 2
+        fuji_top = 45
+        fuji_base = horizon_h + 30
+        fuji_w = 420
+        # Dark volcanic base slopes
+        pts_fuji = [
+            (fuji_cx - fuji_w * 0.5, fuji_base),
+            (fuji_cx - 45, fuji_top),
+            (fuji_cx + 45, fuji_top),
+            (fuji_cx + fuji_w * 0.5, fuji_base)
+        ]
+        pygame.draw.polygon(surface, (28, 36, 64), pts_fuji)
+        # Snow-capped summit
+        pts_snow = [
+            (fuji_cx - 45, fuji_top),
+            (fuji_cx - 85, fuji_top + 45),
+            (fuji_cx - 45, fuji_top + 38),
+            (fuji_cx - 15, fuji_top + 50),
+            (fuji_cx + 20, fuji_top + 40),
+            (fuji_cx + 55, fuji_top + 48),
+            (fuji_cx + 85, fuji_top + 45),
+            (fuji_cx + 45, fuji_top)
+        ]
+        pygame.draw.polygon(surface, (248, 252, 255), pts_snow)
+        
+        # 2. Championship Manicured Racing Turf Verges
+        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X, 0, ROAD_MARGIN, scr_h))
+        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, scr_h))
+        
+        # Manicured emerald race verge overlay
+        turf_overlay = pygame.Surface((int(ROAD_MARGIN), scr_h), pygame.SRCALPHA)
+        turf_overlay.fill((20, 75, 35, 75))
+        surface.blit(turf_overlay, (GAME_X, 0))
+        surface.blit(turf_overlay, (GAME_X + GAME_W - ROAD_MARGIN, 0))
+
+        # 3. Circuit Grandstands & Cheering Spectators
+        for stand in self.stage10_grandstands:
+            gx, gy = stand["pos"]
+            gw, gh = stand["w"], stand["h"]
+            b_col = stand["banner_col"]
+            scr_y = ply_y - (gy - self.track_distance)
+            if -80 <= scr_y <= scr_h + 80:
+                # Canopy roof
+                pygame.draw.rect(surface, (45, 52, 68), (gx - gw * 0.5, scr_y - gh, gw, 10), border_radius=3)
+                # Tiers with crowd colors
+                pygame.draw.rect(surface, (30, 36, 50), (gx - gw * 0.45, scr_y - gh + 10, gw * 0.9, gh - 18))
+                for cr in range(4):
+                    for cc in range(6):
+                        c_dot_col = (240, 200, 180) if (cr + cc) % 2 == 0 else (220, 60, 60)
+                        pygame.draw.circle(surface, c_dot_col, (int(gx - gw * 0.4 + cc * 10), int(scr_y - gh + 14 + cr * 6)), 2)
+                # Championship Banner along front
+                pygame.draw.rect(surface, b_col, (gx - gw * 0.48, scr_y - 8, gw * 0.96, 8), border_radius=2)
+
+        # 4. Animated Celebration Searchlights
+        for light in self.stage10_searchlights:
+            sx, sy = light["pos"]
+            ph = light["phase"]
+            spd = light["sweep_speed"]
+            scr_y = ply_y - (sy - self.track_distance)
+            if -100 <= scr_y <= scr_h + 100:
+                # Searchlight base unit
+                pygame.draw.rect(surface, (70, 75, 90), (sx - 8, scr_y - 12, 16, 12), border_radius=2)
+                pygame.draw.circle(surface, (255, 255, 220), (int(sx), int(scr_y - 12)), 5)
+                # Sweeping radiant beam
+                sweep_ang = math.sin(now * spd + ph) * 0.5
+                beam_dx = math.sin(sweep_ang) * 220
+                pygame.draw.line(surface, (255, 245, 200), (sx, scr_y - 12), (sx + beam_dx, scr_y - 200), 3)
+
+        # 5. Slices: Circuit Asphalt, Championship Gold & Crimson Curbs, Markings
+        slice_h = 6
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
+            r_left, r_right = self.get_road_edges(10, world_y)
+            r_w = r_right - r_left
+            
+            # Championship Safety Armco Barrier (Carbon Grey with Victory Gold Rail)
+            pygame.draw.rect(surface, (38, 42, 52), (r_left - 16.0, y, 16, slice_h))
+            pygame.draw.rect(surface, (38, 42, 52), (r_right, y, 16, slice_h))
+            pygame.draw.rect(surface, (255, 215, 0), (r_left - 16.0, y, 2, slice_h))
+            pygame.draw.rect(surface, (255, 215, 0), (r_right + 14.0, y, 2, slice_h))
+            
+            # Formula-Grade Race Asphalt Surface
+            pygame.draw.rect(surface, (26, 28, 34), (r_left, y, r_w, slice_h))
+            
+            # Dashed Lane Dividers (Crisp Track White)
+            lane_w = r_w / 4.0
+            dash_cycle = (int(y + self.track_distance)) % 60
+            if dash_cycle < 30:
+                pygame.draw.rect(surface, (250, 250, 250), (r_left + lane_w - 1.5, y, 3, slice_h))
+                pygame.draw.rect(surface, (250, 250, 250), (r_left + lane_w * 3.0 - 1.5, y, 3, slice_h))
+                # Double Grand Championship Gold & Cyan Center Line
+                pygame.draw.rect(surface, (255, 215, 0), (r_left + lane_w * 2.0 - 3.0, y, 2, slice_h))
+                pygame.draw.rect(surface, (0, 220, 255), (r_left + lane_w * 2.0 + 1.0, y, 2, slice_h))
+                
+            # Curbs: Alternating Championship Gold and Victory Crimson
+            curb_cycle = (int(y + self.track_distance) // 18) % 2
+            curb_col = (255, 215, 0) if curb_cycle == 0 else (225, 35, 35)
+            pygame.draw.rect(surface, curb_col, (r_left - 8, y, 8, slice_h))
+            pygame.draw.rect(surface, curb_col, (r_right, y, 8, slice_h))
+            
+            # High-Luminance Diamond Apex Beacons every 40m
+            if int(world_y) % 40 < 6:
+                pygame.draw.rect(surface, (180, 240, 255), (r_left - 12, y + 1, 4, 4))
+                pygame.draw.rect(surface, (180, 240, 255), (r_right + 8, y + 1, 4, 4))
 
     def _render_finish_line(self, surface: pygame.Surface):
         scr_h = self.screen_height

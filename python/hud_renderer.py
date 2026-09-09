@@ -62,7 +62,7 @@ class HudRenderer:
         pygame.draw.rect(surface, (10, 20, 36), st_rect, border_radius=6)
         pygame.draw.rect(surface, COLOR_GOLD, st_rect, 2, border_radius=6)
         
-        txt_st = self.font_menu.render(f"STAGE 0{stage}", True, COLOR_GOLD)
+        txt_st = self.font_menu.render(f"STAGE {stage:02d}", True, COLOR_GOLD)
         surface.blit(txt_st, txt_st.get_rect(center=(140, 38)))
         
         st_name = STAGE_NAMES.get(stage, "HIGHWAY")
@@ -367,7 +367,7 @@ class HudRenderer:
         is_sel_1 = (menu_index == 1)
         col1 = COLOR_WHITE if (is_sel_1 and is_blink) else (COLOR_GOLD if is_sel_1 else (210, 230, 250))
         st_name = STAGE_NAMES.get(selected_stage, "STAGE 01")
-        st_str = f"STAGE SELECT   ◄  STAGE 0{selected_stage} : {st_name}  ►" if is_sel_1 else f"STAGE SELECT   < STAGE 0{selected_stage} >"
+        st_str = f"STAGE SELECT   ◄  STAGE {selected_stage:02d} : {st_name}  ►" if is_sel_1 else f"STAGE SELECT   < STAGE {selected_stage:02d} >"
         txt_1 = self.font_menu.render(st_str, True, col1)
         r1 = txt_1.get_rect(center=(cx, menu_y_start + spacing))
         if is_sel_1 and is_blink:
@@ -575,7 +575,7 @@ class HudRenderer:
             txt_h = self.font_title.render("ALL STAGES CLEARED!", True, COLOR_GOLD)
             surface.blit(txt_h, txt_h.get_rect(center=(cx, cy - 56)))
             
-            txt_m = self.font_menu.render("YOU MASTERED ALL HIRAGANA!", True, COLOR_CYAN)
+            txt_m = self.font_menu.render(f"YOU MASTERED ALL {TOTAL_STAGES} STAGES!", True, COLOR_CYAN)
             surface.blit(txt_m, txt_m.get_rect(center=(cx, cy + 10)))
             
             txt_f = self.font_sub.render("RETURNING TO TITLE SCREEN...", True, COLOR_WHITE)
@@ -588,7 +588,7 @@ class HudRenderer:
             pygame.draw.rect(surface, (10, 20, 36), r_box, border_radius=12)
             pygame.draw.rect(surface, COLOR_GOLD, r_box, 3, border_radius=12)
             
-            txt_h = self.font_title.render(f"STAGE 0{stage} CLEARED!", True, COLOR_GOLD)
+            txt_h = self.font_title.render(f"STAGE {stage:02d} CLEARED!", True, COLOR_GOLD)
             surface.blit(txt_h, txt_h.get_rect(center=(cx, cy - 36)))
             
             txt_f = self.font_sub.render("PRESS [SPACE] / [ENTER] / GAMEPAD [A] FOR NEXT STAGE", True, COLOR_CYAN)
