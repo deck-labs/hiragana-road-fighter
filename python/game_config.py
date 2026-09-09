@@ -21,7 +21,7 @@ ROAD_WIDTH = GAME_W - (ROAD_MARGIN * 2.0)  # 640.0 px wide 4-lane highway
 PLAYER_SCREEN_Y = 840.0
 
 # Version & Release Metadata
-GAME_VERSION = "0.3.2"
+GAME_VERSION = "0.4.0"
 GITHUB_REPO = "deck-labs/hiragana-road-fighter"
 VERSION_CHECK_URL = "https://raw.githubusercontent.com/deck-labs/hiragana-road-fighter/main/version.json"
 RELEASES_API_URL = "https://api.github.com/repos/deck-labs/hiragana-road-fighter/releases/latest"
@@ -41,7 +41,7 @@ FUEL_PENALTY = 15.0
 SCORE_REWARD = 50.0
 
 # Total Stages
-TOTAL_STAGES = 7
+TOTAL_STAGES = 8
 
 STAGE_NAMES = {
     1: "FOREST HIGHWAY",
@@ -50,7 +50,8 @@ STAGE_NAMES = {
     4: "MOUNTAIN PASS",
     5: "NEON METROPOLIS",
     6: "VOLCANO CALDERA",
-    7: "GLACIER TUNDRA"
+    7: "GLACIER TUNDRA",
+    8: "SAKURA BOULEVARD"
 }
 
 STAGE_ENV_NOTES = {
@@ -60,7 +61,8 @@ STAGE_ENV_NOTES = {
     4: "MOUNTAIN PASS // ROCKY GORGE // TIGHT S-CURVES",
     5: "NEON EXPRESSWAY // HIGH-SPEED SWEEPS // SKYSCRAPERS",
     6: "VOLCANIC OBSIDIAN RIDGE // MAGMA CRAGS // FAST APEXES",
-    7: "FROST GLACIER // POLAR ICEFALL // ICY APEXES"
+    7: "FROST GLACIER // POLAR ICEFALL // ICY APEXES",
+    8: "CHERRY BLOSSOM BOULEVARD // SPRING DRIFT // SAKURA PETALS"
 }
 
 STAGE_KANA = {
@@ -112,6 +114,13 @@ STAGE_KANA = {
         {"kana": "む", "romaji": "mu"},
         {"kana": "め", "romaji": "me"},
         {"kana": "も", "romaji": "mo"}
+    ],
+    8: [
+        {"kana": "ら", "romaji": "ra"},
+        {"kana": "り", "romaji": "ri"},
+        {"kana": "る", "romaji": "ru"},
+        {"kana": "れ", "romaji": "re"},
+        {"kana": "ろ", "romaji": "ro"}
     ]
 }
 

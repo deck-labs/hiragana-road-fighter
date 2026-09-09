@@ -48,6 +48,9 @@ class RoadRenderer:
         self.stage6_magma_vents = []
         self.stage7_scenery = []
         self.stage7_ice_crystals = []
+        self.stage8_sakura_trees = []
+        self.stage8_lanterns = []
+        self.stage8_petals = []
         
         self._load_assets()
         self._generate_scenery()
@@ -205,6 +208,45 @@ class RoadRenderer:
                 "width": rng.uniform(16, 26)
             })
             cy += rng.uniform(160.0, 300.0)
+
+        # Stage 8: Sakura Trees, Stone Lanterns, and Drifting Blossom Petals
+        y = 160.0
+        while y < STAGE_TRACK_LENGTH - 800.0:
+            side = -1 if rng.random() < 0.5 else 1
+            offset_x = (GAME_X + 65.0) if side == -1 else (GAME_X + GAME_W - 65.0)
+            self.stage8_sakura_trees.append({
+                "pos": (offset_x + rng.uniform(-25, 25), y),
+                "scale": rng.uniform(0.9, 1.25),
+                "tone": rng.choice([0, 1, 2])
+            })
+            y += rng.uniform(70.0, 150.0)
+
+        ly = 280.0
+        while ly < STAGE_TRACK_LENGTH - 1000.0:
+            side = -1 if rng.random() < 0.5 else 1
+            lx = (GAME_X + 90.0) if side == -1 else (GAME_X + GAME_W - 90.0)
+            self.stage8_lanterns.append({
+                "pos": (lx + rng.uniform(-15, 15), ly),
+                "h": rng.uniform(34, 46)
+            })
+            ly += rng.uniform(260.0, 420.0)
+
+        for _ in range(65):
+            self.stage8_petals.append({
+                "rx": rng.uniform(0.0, float(GAME_W)),
+                "ry": rng.uniform(0.0, 1200.0),
+                "speed_y": rng.uniform(80.0, 180.0),
+                "drift_freq": rng.uniform(1.2, 2.6),
+                "drift_amp": rng.uniform(18.0, 38.0),
+                "size": rng.uniform(3.5, 6.5),
+                "phase": rng.uniform(0.0, 6.28),
+                "color": rng.choice([
+                    (255, 192, 203),
+                    (255, 182, 193),
+                    (255, 215, 225),
+                    (255, 165, 185)
+                ])
+            })
 
     def get_road_edges(self, stage: int, world_y: float) -> tuple[float, float]:
         """Calculates (left_edge, right_edge) for any track coordinate."""
@@ -550,6 +592,62 @@ class RoadRenderer:
                     shift = 45.0 * (0.5 + 0.5 * math.cos(t * math.pi))
                     
             return (normal_left + shift, normal_right + shift)
+
+        if stage == 8:
+            # Sakura Boulevard - Spring drifting sweepers, high-speed blossom bends, undulating cherry grove straightaways
+            if world_y < 0.0 or world_y >= STAGE_TRACK_LENGTH - 2400.0:
+                return (normal_left, normal_right)
+                
+            seg_len = 2400.0
+            seg_idx = int(world_y / seg_len)
+            seg_pos = world_y % seg_len
+            pattern = abs(seg_idx) % 4
+            
+            shift = 0.0
+            if pattern == 0:
+                # Blossom Sweeper Left (long, smooth sweeping curve)
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = -120.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1550.0:
+                    shift = -120.0
+                elif 1550.0 <= seg_pos < 2150.0:
+                    t = (seg_pos - 1550.0) / 600.0
+                    shift = -120.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 1:
+                # High-Speed Sakura Bank Right
+                if 250.0 <= seg_pos < 850.0:
+                    t = (seg_pos - 250.0) / 600.0
+                    shift = 120.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 850.0 <= seg_pos < 1550.0:
+                    shift = 120.0
+                elif 1550.0 <= seg_pos < 2150.0:
+                    t = (seg_pos - 1550.0) / 600.0
+                    shift = 120.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            elif pattern == 2:
+                # Spring S-Chicane (Flowing Left then Right)
+                if 200.0 <= seg_pos < 700.0:
+                    t = (seg_pos - 200.0) / 500.0
+                    shift = -100.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 700.0 <= seg_pos < 1550.0:
+                    t = (seg_pos - 700.0) / 850.0
+                    shift = -100.0 + 200.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 1550.0 <= seg_pos < 2050.0:
+                    t = (seg_pos - 1550.0) / 500.0
+                    shift = 100.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+            else:
+                # Sakura Avenue Undulating Straight
+                if 300.0 <= seg_pos < 750.0:
+                    t = (seg_pos - 300.0) / 450.0
+                    shift = -40.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 750.0 <= seg_pos < 1250.0:
+                    t = (seg_pos - 750.0) / 500.0
+                    shift = -40.0 + 80.0 * (0.5 - 0.5 * math.cos(t * math.pi))
+                elif 1250.0 <= seg_pos < 1700.0:
+                    t = (seg_pos - 1250.0) / 450.0
+                    shift = 40.0 * (0.5 + 0.5 * math.cos(t * math.pi))
+                    
+            return (normal_left + shift, normal_right + shift)
             
         return (normal_left, normal_right)
 
@@ -585,8 +683,10 @@ class RoadRenderer:
             self._render_stage5(surface)
         elif stage == 6:
             self._render_stage6(surface)
-        else:
+        elif stage == 7:
             self._render_stage7(surface)
+        else:
+            self._render_stage8(surface)
             
         self._render_finish_line(surface)
 
@@ -1193,6 +1293,164 @@ class RoadRenderer:
             if int(world_y) % 40 < 6:
                 pygame.draw.rect(surface, (140, 235, 255), (r_left - 12, y + 1, 4, 4))
                 pygame.draw.rect(surface, (140, 235, 255), (r_right + 8, y + 1, 4, 4))
+
+    def _render_stage8(self, surface: pygame.Surface):
+        scr_h = self.screen_height
+        ply_y = self.player_screen_y
+        
+        # 1. Spring Twilight Sky (deep violet-rose gradient base)
+        pygame.draw.rect(surface, (28, 18, 38), (GAME_X, 0, GAME_W, scr_h))
+        
+        # 2. Fresh Spring Turf Grass on Verges
+        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X, 0, ROAD_MARGIN, scr_h))
+        self.draw_tiled_texture(surface, self.tex_grass, (GAME_X + GAME_W - ROAD_MARGIN, 0, ROAD_MARGIN, scr_h))
+        
+        # Twilight Spring Rose-tint overlay on verges
+        verge_overlay = pygame.Surface((int(ROAD_MARGIN), scr_h), pygame.SRCALPHA)
+        verge_overlay.fill((55, 20, 42, 60))
+        surface.blit(verge_overlay, (GAME_X, 0))
+        surface.blit(verge_overlay, (GAME_X + GAME_W - ROAD_MARGIN, 0))
+        
+        # 3. Traditional Japanese Stone Lanterns (ishidōrō) along roadside
+        import time
+        now = time.time()
+        for lantern in self.stage8_lanterns:
+            lx, ly = lantern["pos"]
+            lh = lantern["h"]
+            scr_y = ply_y - (ly - self.track_distance)
+            if -60 <= scr_y <= scr_h + 60:
+                # Stone Base (pedestal / kiso)
+                pygame.draw.rect(surface, (110, 115, 125), (lx - 12, scr_y - 8, 24, 8))
+                # Stone Column (sao)
+                pygame.draw.rect(surface, (130, 135, 145), (lx - 5, scr_y - 22, 10, 14))
+                # Middle Platform (chūdai)
+                pygame.draw.polygon(surface, (120, 125, 135), [
+                    (lx - 14, scr_y - 22), (lx + 14, scr_y - 22),
+                    (lx + 8, scr_y - 26), (lx - 8, scr_y - 26)
+                ])
+                # Light Chamber (hibukuro) - warm amber glow
+                glow_flicker = 0.85 + 0.15 * math.sin(now * 3.5 + ly * 0.05)
+                amber_val = int(220 * glow_flicker)
+                pygame.draw.rect(surface, (255, amber_val, 50), (lx - 8, scr_y - 38, 16, 12))
+                # Wooden lattice window frame
+                pygame.draw.line(surface, (40, 25, 20), (lx, scr_y - 38), (lx, scr_y - 26), 2)
+                pygame.draw.line(surface, (40, 25, 20), (lx - 8, scr_y - 32), (lx + 8, scr_y - 32), 2)
+                pygame.draw.rect(surface, (100, 105, 115), (lx - 8, scr_y - 38, 16, 12), 1)
+                # Umbrella Roof (kasa) - flanged pagoda eaves
+                pygame.draw.polygon(surface, (140, 145, 155), [
+                    (lx - 18, scr_y - 38), (lx + 18, scr_y - 38),
+                    (lx + 10, scr_y - 46), (lx - 10, scr_y - 46)
+                ])
+                # Finial Jewel (hōju) on top
+                pygame.draw.circle(surface, (160, 165, 175), (int(lx), int(scr_y - 48)), 3)
+
+        # 4. Blooming Cherry Blossom Trees (Sakura Trees)
+        for item in self.stage8_sakura_trees:
+            tx, ty = item["pos"]
+            scale = item["scale"]
+            tone = item["tone"]
+            scr_y = ply_y - (ty - self.track_distance)
+            if -120 <= scr_y <= scr_h + 120:
+                # Fallen petals patch on ground beneath tree
+                petal_spread = int(32 * scale)
+                for pr in range(5):
+                    px_f = tx + math.sin(pr * 1.3) * petal_spread * 0.7
+                    py_f = scr_y - 4 + math.cos(pr * 1.7) * 8
+                    pygame.draw.circle(surface, (255, 185, 205), (int(px_f), int(py_f)), 3)
+
+                # Gnarled Trunk and Main Branches
+                tw = int(12 * scale)
+                th = int(48 * scale)
+                # Trunk base
+                pygame.draw.rect(surface, (62, 40, 32), (tx - tw // 2, scr_y - th, tw, th))
+                # Trunk texture / highlight
+                pygame.draw.line(surface, (88, 58, 46), (tx - tw // 4, scr_y - th), (tx - tw // 4, scr_y - 2), 2)
+                # Branches spreading outward
+                pygame.draw.line(surface, (62, 40, 32), (tx, scr_y - int(th * 0.7)), (tx - int(24 * scale), scr_y - int(th * 1.1)), int(4 * scale))
+                pygame.draw.line(surface, (62, 40, 32), (tx, scr_y - int(th * 0.6)), (tx + int(24 * scale), scr_y - int(th * 1.05)), int(4 * scale))
+
+                # Blossom Canopy: Layered puffs of cherry blossoms
+                if tone == 0:
+                    base_pink = (235, 140, 165)
+                    mid_pink = (255, 182, 198)
+                    high_pink = (255, 220, 232)
+                elif tone == 1:
+                    base_pink = (225, 125, 155)
+                    mid_pink = (255, 168, 188)
+                    high_pink = (255, 210, 225)
+                else:
+                    base_pink = (240, 150, 175)
+                    mid_pink = (255, 195, 210)
+                    high_pink = (255, 230, 240)
+
+                # Multi-tiered blossom cloud puffs (Layer 1: base shadow puffs)
+                puffs = [
+                    (-22, -44, 22), (22, -42, 22), (0, -56, 26),
+                    (-14, -68, 20), (14, -66, 20), (0, -78, 18)
+                ]
+                for ox, oy, rad in puffs:
+                    cx = tx + int(ox * scale)
+                    cy = scr_y + int(oy * scale)
+                    r = int(rad * scale)
+                    pygame.draw.circle(surface, base_pink, (cx, cy + 2), r)
+                # Layer 2: middle blossom bulk
+                for ox, oy, rad in puffs:
+                    cx = tx + int(ox * scale)
+                    cy = scr_y + int(oy * scale)
+                    r = int(rad * scale)
+                    pygame.draw.circle(surface, mid_pink, (cx, cy), r)
+                # Layer 3: highlight sunlit crests
+                for ox, oy, rad in puffs:
+                    cx = tx + int(ox * scale)
+                    cy = scr_y + int((oy - 4) * scale)
+                    r = max(2, int((rad - 7) * scale))
+                    pygame.draw.circle(surface, high_pink, (cx, cy), r)
+
+        # 5. Slices: Roadway, Asphalt, Sakura Rose Curbs, Markings
+        slice_h = 6
+        for y in range(0, scr_h, slice_h):
+            world_y = self.track_distance + (ply_y - y)
+            r_left, r_right = self.get_road_edges(8, world_y)
+            r_w = r_right - r_left
+            
+            # Bronze Mahogany Guard Barrier with Sakura Rose Trim
+            pygame.draw.rect(surface, (46, 32, 38), (r_left - 16.0, y, 16, slice_h))
+            pygame.draw.rect(surface, (46, 32, 38), (r_right, y, 16, slice_h))
+            pygame.draw.rect(surface, (240, 165, 185), (r_left - 16.0, y, 2, slice_h))
+            pygame.draw.rect(surface, (240, 165, 185), (r_right + 14.0, y, 2, slice_h))
+            
+            # Dark Slate Asphalt Road Surface
+            pygame.draw.rect(surface, (34, 36, 42), (r_left, y, r_w, slice_h))
+            
+            # Dashed Lane Dividers (Crisp Snow White)
+            lane_w = r_w / 4.0
+            dash_cycle = (int(y + self.track_distance)) % 60
+            if dash_cycle < 30:
+                pygame.draw.rect(surface, (250, 245, 245), (r_left + lane_w - 1.5, y, 3, slice_h))
+                pygame.draw.rect(surface, (250, 245, 245), (r_left + lane_w * 3.0 - 1.5, y, 3, slice_h))
+                # Double Golden Honey Center Line
+                pygame.draw.rect(surface, (255, 195, 45), (r_left + lane_w * 2.0 - 3.0, y, 2, slice_h))
+                pygame.draw.rect(surface, (255, 195, 45), (r_left + lane_w * 2.0 + 1.0, y, 2, slice_h))
+                
+            # Sakura Rose & Pure Pearl White Alternating Curbs
+            curb_cycle = (int(y + self.track_distance) // 18) % 2
+            curb_col = (255, 125, 165) if curb_cycle == 0 else (255, 255, 255)
+            pygame.draw.rect(surface, curb_col, (r_left - 8, y, 8, slice_h))
+            pygame.draw.rect(surface, curb_col, (r_right, y, 8, slice_h))
+            
+            # Soft Rose-Gold Roadside Reflectors every 40m
+            if int(world_y) % 40 < 6:
+                pygame.draw.rect(surface, (255, 195, 160), (r_left - 12, y + 1, 4, 4))
+                pygame.draw.rect(surface, (255, 195, 160), (r_right + 8, y + 1, 4, 4))
+
+        # 6. Dynamic Drifting Sakura Petals (Screen & Road Overlay)
+        for petal in self.stage8_petals:
+            drift_x = math.sin(petal["phase"] + self.frames * 0.025 * petal["drift_freq"]) * petal["drift_amp"]
+            px = GAME_X + (petal["rx"] + drift_x) % GAME_W
+            py = (petal["ry"] + self.frames * (petal["speed_y"] / 60.0) + self.track_distance * 0.15) % scr_h
+            sz = int(petal["size"])
+            pygame.draw.ellipse(surface, petal["color"], (int(px - sz), int(py - sz // 2), sz * 2, max(2, sz)))
+            pygame.draw.circle(surface, (255, 240, 245), (int(px), int(py)), max(1, sz // 3))
 
     def _render_finish_line(self, surface: pygame.Surface):
         scr_h = self.screen_height
